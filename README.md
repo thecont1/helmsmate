@@ -2,7 +2,7 @@
 
 **Zero-dependency HTML slide decks, authored in YAML, compiled to a single self-contained `index.html`.**
 
-Hived off from the Saint Elms Fire intro deck (`~/hermes-workspace/st-elms-fire-deck`), where the
+Hived off from the Saint Elms Fire intro deck (`saint-elms-fire/deck/`), where the
 engine proved itself on an 8-slide product narrative. HelmChart is that engine, generalized:
 you write one YAML file, run one build command, and get a beautiful presentation that runs
 anywhere a browser exists — no CDN, no runtime fetch, no framework.
@@ -114,9 +114,9 @@ helmchart/
 **Build tool:** Python 3 + PyYAML only (install with `uv add pyyaml`). No other deps.
 **Verification:** Playwright headless (dev dependency, not shipped).
 
-## Migration path from st-elms-fire-deck
+## Migration path from the Elms deck
 
-1. Port `~/hermes-workspace/st-elms-fire-deck/index.html` → `deck.example.yaml`
+1. Port `saint-elms-fire/deck/index.html` → `deck.example.yaml`
    (pure mechanical translation; the 8 slides map onto the 5 layouts above).
 2. Extract the Mariner's Chart palette/fonts from the inline `:root` → theme YAML.
 3. Generalize `template.html` from the fixed file (layouts as Jinja-free string
