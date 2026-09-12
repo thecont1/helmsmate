@@ -1,0 +1,38 @@
+# Mariner's Chart — two-colour white & blue, lifted from Saint Elms Fire
+# (beacon blues + marine ink + paper). Value source: saint-elms-fire globals.css @theme.
+name: Mariner's Chart
+
+colors:
+  paper:  "#FBFBFD"   # card surface
+  chart:  "#F5F7FB"   # page background
+  beacon:
+    50:  "#EFF3FA"
+    100: "#E4EAF7"
+    200: "#C9D6EF"
+    300: "#9EB3E6"
+    400: "#6E8BD9"
+    500: "#4A68C8"
+    600: "#3E5EC0"
+    700: "#3452AE"
+    800: "#2A4190"
+    900: "#1F2F66"
+  marine:
+    600: "#39588F"
+    700: "#2C4A80"
+    800: "#243C6B"
+    900: "#1D2F56"
+    950: "#16223F"
+
+fonts:
+  display: '"Iowan Old Style","Big Caslon",Georgia,"Times New Roman",serif'
+  sans:    '"Avenir Next","Helvetica Neue",Helvetica,Arial,sans-serif'
+  mono:    'Menlo,"SF Mono",Monaco,Consolas,monospace'
+
+effects:
+  # background chart grid + beacon glow (body::before)
+  grid_glow:   "rgba(62,94,200,.10)"
+  grid_line_x: "rgba(62,94,200,.05)"
+  grid_line_y: "rgba(62,94,200,.045)"
+  grid_size:   56               # px
+  card_shadow: "0 1px 2px rgba(22,34,63,.05)"
+  nav_shadow:  "0 1px 3px rgba(22,34,63,.12)"
