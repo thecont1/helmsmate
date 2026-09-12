@@ -1,9 +1,9 @@
-# HelmChart
+# HelmsMate
 
 **Zero-dependency HTML slide decks, authored in YAML, compiled to a single self-contained `index.html`.**
 
 Hived off from the Saint Elms Fire intro deck (`saint-elms-fire/deck/`), where the
-engine proved itself on an 8-slide product narrative. HelmChart is that engine, generalized:
+engine proved itself on an 8-slide product narrative. HelmsMate is that engine, generalized:
 you write one YAML file, run one build command, and get a beautiful presentation that runs
 anywhere a browser exists — no CDN, no runtime fetch, no framework.
 
@@ -96,7 +96,7 @@ These are the bugs/constraints discovered while building the Elms deck. The engi
 ## Repo layout (target)
 
 ```
-helmchart/
+helmsmate/
 ├── README.md                 # this file
 ├── deck.example.yaml         # annotated starter (the Elms deck, ported)
 ├── themes/
@@ -123,11 +123,11 @@ helmchart/
    templates — keep it readable).
 4. Port the checks we ran by hand (elementsFromPoint paint test, footer/overflow
    measurements, counter centering) into `scripts/verify.py` as CI-able assertions.
-5. Point the Elms deck at HelmChart: its folder keeps only `deck.yaml` + built output.
+5. Point the Elms deck at HelmsMate: its folder keeps only `deck.yaml` + built output.
 
 ## Roadmap
 
 - **v0** — the above, exactly. One theme, five layouts, Elms deck as the example.
-- **v1** — schema validation with friendly errors; `helmchart new`; watch mode.
+- **v1** — schema validation with friendly errors; `helmsmate new`; watch mode.
 - **v2** — fragments (animated build lists), presenter notes via query param,
   PDF export through print CSS, second theme (paper/ink light & reef dark).
