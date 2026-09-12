@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HelmChart build step.
+"""HelmsMate build step.
 
 Reads deck.yaml, a named theme, and the generic HTML template, then writes a
 single self-contained index.html with zero runtime dependencies.
@@ -7,18 +7,27 @@ single self-contained index.html with zero runtime dependencies.
 Usage:
     python engine/build.py
     python engine/build.py path/to/deck.yaml
+
+Authoring conventions:
+    title : newlines fold — the browser wraps titles (text-wrap:balance)
+    note / stat.small : literal newlines render as <br>
+    lede / lede2 / lede_after / card.p : newlines fold into natural prose
+    **text** renders <b>text</b> in any text field
+    figure : raw HTML (SVG), passed through untouched
+    grid_mt : optional integer px margin-top override for the card/figure grid
 """
 
 import argparse
 import base64
+import html
 import re
 import sys
 from pathlib import Path
 
 try:
     import yaml
-except ImportError as exc:  # pragma: no cover
-    print("HelmChart build requires PyYAML. Install: uv add pyyaml", file=sys.stderr)
+except ImportError:
+    print("HelmsMate build requires PyYAML. Install: uv add pyyaml", file=sys.stderr)
     raise
 
 REPO = Path(__file__).resolve().parent.parent
@@ -32,43 +41,61 @@ def load_yaml(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def esc(text: str) -> str:
+    return html.escape(str(text or ""), quote=False)
+
+
 def bold(text: str) -> str:
-    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text or "")
+    """Escape, then promote **x** to <b>."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc(text))
 
 
 def br(text: str) -> str:
-    return "<br>".join(line for line in (text or "").splitlines())
+    """Line-owned text: each line escaped, joined with <br>."""
+    return "<br>".join(bold(line) for line in (text or "").splitlines())
 
 
 def prose(text: str) -> str:
-    """Folded/paragraph text: collapse newlines, then bold-ify."""
-    if not text:
-        return ""
-    return bold(" ".join(text.split()))
+    """Folded text: collapse newlines, escape, then bold-ify."""
+    return bold(" ".join((text or "").split()))
+
+
+def attr(text: str) -> str:
+    return html.escape(str(text or ""), quote=True)
 
 
 def css_vars_from_theme(theme: dict) -> str:
-    """Flatten the theme YAML into CSS custom properties."""
-    lines = ["/* theme variables */"]
+    """Flatten theme YAML into CSS custom properties.
 
-    def walk(prefix: str, node):
+    Mapping:  colors.beacon.50 → --beacon-50,  fonts.display → --font-display,
+              effects.grid_glow → --grid-glow.  The `name` key is metadata only.
+    """
+    lines = []
+
+    def walk(path, node):
         if isinstance(node, dict):
             for k, v in node.items():
-                key = f"{prefix}-{k}" if prefix else k
-                walk(key, v)
-        elif isinstance(node, list):
-            value = ", ".join(str(i) for i in node)
-            lines.append(f"  --{prefix}: {value};")
+                walk(path + [k], v)
         else:
-            lines.append(f"  --{prefix}: {node};")
+            if path == ["name"]:
+                return
+            parts = [p for p in path if p not in ("colors", "effects")]
+            if parts and parts[0] == "fonts":
+                parts[0] = "font"
+            var = "-".join(str(p) for p in parts).replace("_", "-")
+            lines.append(f"  --{var}: {node};")
 
-    walk("", theme)
-    return "\n".join(f"  {l}" if not l.startswith("/*") else l for l in lines)
+    walk([], theme)
+    return "\n".join(lines)
 
 
 def inline_svg(path: Path) -> str:
     with open(path, "r", encoding="utf-8") as f:
-        return f.read().strip()
+        svg = f.read().strip()
+    # Template styles target svg.corona; inject the class if the asset lacks it.
+    if 'class="corona"' not in svg:
+        svg = re.sub(r"<svg\b", '<svg class="corona"', svg, count=1)
+    return svg
 
 
 def svg_to_data_uri(svg: str) -> str:
@@ -77,95 +104,111 @@ def svg_to_data_uri(svg: str) -> str:
 
 
 def card_html(card: dict) -> str:
+    k = esc(card.get("k", "")).replace("◦ ", "◦&nbsp;")
     return f"""<div class="card">
-  <div class="k">{bold(card.get("k", ""))}</div>
-  <h3>{bold(card.get("h", ""))}</h3>
-  <p>{prose(card.get("p", ""))}</p>
-</div>"""
+        <span class="k">{k}</span>
+        <h3>{bold(card.get("h", ""))}</h3>
+        <p>{prose(card.get("p", ""))}</p>
+      </div>"""
 
 
 def stat_html(stat: dict) -> str:
-    return f"""<div class="stat">
-  <div class="big">{bold(str(stat.get("big", "")))}</div>
-  <div class="small">{br(stat.get("small", ""))}</div>
-</div>"""
+    return f'<div class="stat"><b>{bold(stat.get("big", ""))}</b><span>{br(stat.get("small", ""))}</span></div>'
+
+
+def grid_mt_attr(slide: dict) -> str:
+    v = slide.get("grid_mt")
+    return f' style="margin-top:{int(v)}px"' if v is not None else ""
 
 
 def slide_html(slide: dict, index: int, total: int, foot_default: str) -> str:
     layout = slide.get("layout", "opener")
-    context = slide.get("context", "")
+    context = attr(slide.get("context", ""))
     eyebrow = bold(slide.get("eyebrow", ""))
-    title = bold(br(slide.get("title", "")))
+    title = prose(slide.get("title", ""))
     lede = prose(slide.get("lede", ""))
     lede2 = prose(slide.get("lede2", ""))
     note = br(slide.get("note", ""))
     figure = slide.get("figure", "")
     cards = slide.get("cards", [])
     stats = slide.get("stats", [])
-    foot = slide.get("foot", foot_default)
+    foot = esc(slide.get("foot", foot_default))
+    gmt = grid_mt_attr(slide)
 
     body = ""
 
     if layout == "opener":
         stats_html = "".join(stat_html(s) for s in stats)
         body = f"""<p class="eyebrow">{eyebrow}</p>
-<h2>{title}</h2>
-<p class="lede">{lede}</p>
-<div class="statline">{stats_html}</div>"""
+    <h1>{title}</h1>
+    <p class="lede">
+      {lede}
+    </p>
+    <div class="stats">
+      {stats_html}
+    </div>"""
         if note:
-            body += f'\n<div class="note">{note}</div>'
+            body += f'\n    <p class="lede note">{note}</p>'
 
     elif layout == "cards2":
         cards_html = "".join(card_html(c) for c in cards[:2])
-        stats_html = "".join(stat_html(s) for s in stats)
-        note_html = f'\n<div class="note">{note}</div>' if note else ""
+        note_html = f'\n    <p class="lede note">\n      {note}\n    </p>' if note else ""
+        stats_html = f'\n    <div class="stats stats-tight">{"".join(stat_html(s) for s in stats)}</div>' if stats else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
-<h2>{title}</h2>
-<div class="grid2">{cards_html}</div>{note_html}
-<div class="statline">{stats_html}</div>"""
+    <h2>{title}</h2>
+    <div class="grid2"{gmt}>
+      {cards_html}
+    </div>{note_html}{stats_html}"""
 
     elif layout == "cards3":
         cards_html = "".join(card_html(c) for c in cards[:3])
+        lede_after = prose(slide.get("lede_after", ""))
+        lede_after_html = f'\n    <p class="lede lede-after">\n      {lede_after}\n    </p>' if lede_after else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
-<h2>{title}</h2>
-<div class="grid3">{cards_html}</div>
-<p class="lede_after">{prose(slide.get("lede_after", ""))}</p>"""
+    <h2>{title}</h2>
+    <div class="grid3"{gmt}>
+      {cards_html}
+    </div>{lede_after_html}"""
 
     elif layout == "figure2":
         stats_html = "".join(stat_html(s) for s in stats)
+        lede2_html = f'\n        <p class="lede lede2">\n          {lede2}\n        </p>' if lede2 else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
-<h2>{title}</h2>
-<div class="figure2-stage">
-  <div class="figure-wrap">{figure}</div>
-  <div>
-    <p class="lede">{lede}</p>
-    <div class="statline">{stats_html}</div>
-    <p class="lede2">{lede2}</p>
-  </div>
-</div>"""
+    <h2>{title}</h2>
+    <div class="grid2"{gmt}>
+      <div class="figure">
+        {figure}
+      </div>
+      <div>
+        <p class="lede lede-flush">
+          {lede}
+        </p>
+        <div class="stats stats-tight">
+          {stats_html}
+        </div>{lede2_html}
+      </div>
+    </div>"""
 
     elif layout == "closer":
-        lede2_html = f'<p class="lede2">{lede2}</p>' if lede2 else ""
+        lede2_html = f'\n    <p class="lede lede-followup">\n      {lede2}\n    </p>' if lede2 else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
-<h2>{title}</h2>
-<p class="lede">{lede}</p>
-{lede2_html}"""
+    <h2>
+      {title}
+    </h2>
+    <p class="lede">
+      {lede}
+    </p>{lede2_html}"""
 
     else:
         raise ValueError(f"Unknown layout: {layout}")
 
-    return f"""<section class="slide {layout}" data-context="{context}" data-layout="{layout}" role="listitem" aria-label="Slide {index}">
+    return f"""<section class="slide" data-context="{context}">
   <div class="stage">
-{body}
+    {body}
   </div>
-  <div class="stage-foot">
-    <span class="foot-text">{foot}</span>
-    <div class="nav" aria-label="Slide {index} navigation">
-      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
-      <span class="count">{index} / {total}</span>
-      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
-    </div>
-  </div>
+  <footer class="foot">
+    <span>{foot}</span>
+  </footer>
 </section>"""
 
 
@@ -181,7 +224,6 @@ def build(deck_path: Path) -> Path:
 
     brand_word = bold(brand.get("word", ""))
     brand_alt = brand.get("alt", "Brand mark")
-    reset_on_click = brand.get("reset_on_click", False)
 
     with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
         template = f.read()
@@ -190,25 +232,19 @@ def build(deck_path: Path) -> Path:
     total = len(slides)
     foot_default = deck.get("deck", {}).get("footer", {}).get("default", "")
 
-    first_context = slides[0].get("context", "") if slides else ""
-
-    slides_html = "\n".join(
+    slides_html = "\n\n".join(
         slide_html(slide, i + 1, total, foot_default) for i, slide in enumerate(slides)
     )
 
     output = template
-    output = output.replace("{{DECK_TITLE}}", deck.get("deck", {}).get("title", "HelmChart"))
+    output = output.replace("{{DECK_TITLE}}", esc(deck.get("deck", {}).get("title", "HelmsMate")))
     output = output.replace("{{FAVICON}}", favicon)
-    output = output.replace("{{THEME_VARS}}", css_vars_from_theme(theme))
+    output = output.replace("/*{{THEME_VARS}}*/", css_vars_from_theme(theme))
     output = output.replace("{{LOGO_SVG}}", logo_svg)
     output = output.replace("{{BRAND_WORD}}", brand_word)
     output = output.replace("{{BRAND_ALT}}", brand_alt)
-    output = output.replace("{{FIRST_CONTEXT}}", first_context)
     output = output.replace("{{SLIDE_COUNT}}", str(total))
     output = output.replace("{{SLIDES}}", slides_html)
-
-    # Logo click is always wired; use brand.reset_on_click: false in the
-    # future if you want a non-interactive mark (href still links to #/1).
 
     DIST_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(DIST_FILE, "w", encoding="utf-8") as f:
@@ -219,7 +255,7 @@ def build(deck_path: Path) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="HelmChart deck builder")
+    parser = argparse.ArgumentParser(description="HelmsMate deck builder")
     parser.add_argument("deck", nargs="?", default=str(REPO / "deck.example.yaml"), help="Path to deck YAML")
     args = parser.parse_args()
 

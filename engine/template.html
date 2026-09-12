@@ -1,389 +1,356 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{DECK_TITLE}}</title>
-  <link rel="icon" type="image/svg+xml" href="{{FAVICON}}" />
-  <style>
-    :root {
-      {{THEME_VARS}}
-
-      /* Hard-wired invariant guard values. These are intentionally explicit.
-         If a future theme omits them, the deck still renders. */
-      --_paper: #FBFBFD;
-      --_chart: #F5F7FB;
-      --_beacon-700: #3452AE;
-      --_beacon-800: #2A4190;
-      --_beacon-500: #4A68C8;
-      --_beacon-600: #3E5EC0;
-      --_beacon-900: #1F2F66;
-      --_marine-700: #2C4A80;
-      --_marine-800: #243C6B;
-      --_marine-900: #1D2F56;
-      --_marine-950: #16223F;
-      --_font-display: "Iowan Old Style","Big Caslon",Georgia,"Times New Roman",serif;
-      --_font-sans: "Avenir Next","Helvetica Neue",Helvetica,Arial,sans-serif;
-      --_font-mono: Menlo,"SF Mono",Monaco,Consolas,monospace;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body { margin: 0; padding: 0; height: 100%; }
-
-    body {
-      font-family: var(--font-sans, var(--_font-sans));
-      background: var(--chart, var(--_chart));
-      color: var(--marine-900, var(--_marine-900));
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      background:
-        radial-gradient(circle at 70% 30%, var(--grid-glow, rgba(62,94,200,.10)), transparent 45%),
-        repeating-linear-gradient(0deg, transparent, transparent calc(var(--grid-size, 56px) - 1px), var(--grid-line-y, rgba(62,94,200,.045)) var(--grid-size, 56px)),
-        repeating-linear-gradient(90deg, transparent, transparent calc(var(--grid-size, 56px) - 1px), var(--grid-line-x, rgba(62,94,200,.05)) var(--grid-size, 56px));
-    }
-
-    .deck {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .deck-head {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 30;
-      padding: 28px 48px 0;
-      pointer-events: none;
-    }
-
-    .head-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--marine-700, var(--_marine-700));
-      padding-bottom: 18px;
-      pointer-events: auto;
-    }
-
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      text-decoration: none;
-      color: inherit;
-      cursor: pointer;
-    }
-
-    .brand-mark { display: block; width: 44px; height: 44px; }
-    .brand-mark svg { display: block; width: 100%; height: 100%; }
-    .brand-word { font-family: var(--font-display, var(--_font-display)); font-size: 22px; color: var(--marine-950, var(--_marine-950)); letter-spacing: -0.02em; }
-    .brand-word b { font-weight: 700; color: var(--beacon-800, var(--_beacon-800)); }
-
-    .context-label { font-family: var(--font-mono, var(--_font-mono)); font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--beacon-700, var(--_beacon-700)); }
-
-    .track {
-      display: flex;
-      height: 100%;
-      transition: transform .55s cubic-bezier(.4,0,.2,1);
-      will-change: transform;
-    }
-
-    .slide {
-      width: 100vw;
-      height: 100%;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      padding: 120px 48px 88px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stage {
-      flex: 1 1 auto;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .stage-foot {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 20px 48px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 11px;
-      color: var(--beacon-700, var(--_beacon-700));
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-    }
-
-    .nav {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(251,251,253,.92);
-      border: 1px solid var(--beacon-200, #C9D6EF);
-      border-radius: 999px;
-      padding: 6px 16px;
-      box-shadow: 0 1px 3px rgba(22,34,63,.12);
-    }
-
-    .nav button {
-      width: 30px;
-      height: 30px;
-      border: none;
-      border-radius: 50%;
-      background: var(--paper, var(--_paper));
-      color: var(--beacon-800, var(--_beacon-800));
-      font-size: 18px;
-      line-height: 1;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: background .15s, color .15s;
-    }
-
-    .nav button:hover { background: var(--beacon-100, #E4EAF7); color: var(--beacon-900, var(--_beacon-900)); }
-    .nav button:disabled { opacity: .4; cursor: not-allowed; }
-
-    .count { min-width: 40px; text-align: center; font-size: 12px; font-weight: 600; color: var(--marine-900, var(--_marine-900)); letter-spacing: 0.04em; }
-
-    .eyebrow {
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.22em;
-      color: var(--beacon-700, var(--_beacon-700));
-      margin: 0 0 14px;
-    }
-
-    h2 {
-      font-family: var(--font-display, var(--_font-display));
-      font-size: clamp(36px, 4.2vw, 62px);
-      line-height: 1.08;
-      color: var(--marine-950, var(--_marine-950));
-      margin: 0 0 22px;
-    }
-
-    .lede, .lede2, .slide p {
-      font-size: clamp(16px, 1.45vw, 20px);
-      line-height: 1.55;
-      color: var(--marine-800, var(--_marine-800));
-      max-width: 62ch;
-    }
-
-    .lede b, .lede2 b, .slide p b { color: var(--beacon-800, var(--_beacon-800)); font-weight: 600; }
-
-    .note {
-      margin-top: 28px;
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 12px;
-      line-height: 1.7;
-      color: var(--beacon-700, var(--_beacon-700));
-      border-left: 2px solid var(--beacon-400, #6E8BD9);
-      padding-left: 16px;
-    }
-
-    .grid2, .grid3 {
-      display: grid;
-      gap: 24px;
-      width: 100%;
-      margin-top: 18px;
-    }
-    .grid2 { grid-template-columns: repeat(2, 1fr); }
-    .grid3 { grid-template-columns: repeat(3, 1fr); }
-
-    .card {
-      background: var(--paper, var(--_paper));
-      border: 1px solid var(--beacon-200, #C9D6EF);
-      border-radius: 16px;
-      padding: 26px 28px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 1px 2px rgba(22,34,63,.05);
-    }
-
-    .card .k {
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: var(--beacon-600, var(--_beacon-600));
-      margin-bottom: 8px;
-    }
-
-    .card h3 {
-      font-family: var(--font-display, var(--_font-display));
-      font-size: clamp(22px, 1.9vw, 30px);
-      line-height: 1.15;
-      color: var(--marine-900, var(--_marine-900));
-      margin: 0 0 12px;
-    }
-
-    .card p { font-size: clamp(14px, 1.15vw, 17px); line-height: 1.55; color: var(--marine-700, var(--_marine-700)); margin: 0; }
-    .card p b { color: var(--beacon-800, var(--_beacon-800)); font-weight: 600; }
-
-    .statline {
-      display: flex;
-      gap: 40px;
-      margin-top: 34px;
-    }
-
-    .stat { text-align: left; }
-    .stat .big {
-      font-family: var(--font-display, var(--_font-display));
-      font-size: clamp(44px, 4.4vw, 76px);
-      color: var(--beacon-800, var(--_beacon-800));
-      line-height: 1;
-    }
-    .stat .small {
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 11px;
-      line-height: 1.45;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--marine-700, var(--_marine-700));
-      margin-top: 8px;
-    }
-
-    .figure2-stage {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 36px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .figure-wrap { display: flex; justify-content: center; align-items: center; }
-    .figure-wrap svg { max-width: 100%; height: auto; }
-
-    .closer { text-align: center; align-items: center; }
-    .closer .stage { align-items: center; }
-    .closer h2 { text-align: center; }
-    .closer .lede, .closer .lede2 { max-width: 58ch; text-align: center; }
-
-    .github-link {
-      display: inline-block;
-      margin-top: 6px;
-      font-family: var(--font-mono, var(--_font-mono));
-      font-size: 12px;
-      color: var(--beacon-700, var(--_beacon-700));
-      text-decoration: none;
-      border-bottom: 1px solid var(--beacon-400, #6E8BD9);
-    }
-    .github-link:hover { color: var(--beacon-900, var(--_beacon-900)); border-color: var(--beacon-700, var(--_beacon-700)); }
-
-    @media (max-width: 980px) {
-      .deck-head { padding: 20px 28px 0; }
-      .slide { padding: 96px 28px 84px; overflow-y: auto; }
-      .grid2 { grid-template-columns: 1fr; }
-      .grid3 { grid-template-columns: 1fr; }
-      .figure2-stage { grid-template-columns: 1fr; }
-      .statline { flex-wrap: wrap; gap: 24px; }
-      .stage-foot { padding: 18px 28px 22px; }
-    }
-
-    @media (max-width: 640px) {
-      .brand-word { display: none; }
-      .context-label { font-size: 10px; }
-      .slide { padding: 92px 22px 80px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{DECK_TITLE}}</title>
+<link rel="icon" href="{{FAVICON}}">
+<style>
+/* ── HelmsMate · theme tokens injected by build.py ─── */
+:root{
+  color-scheme: light;
+  /*{{THEME_VARS}}*/
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--chart);
+  color:var(--marine-900);
+  font-family:var(--font-sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* chart grid + beacon glow behind everything */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(60% 34% at 50% -6%, var(--grid-glow,rgba(62,94,200,.10)), transparent 70%),
+    linear-gradient(to right, var(--grid-line-x,rgba(62,94,200,.05)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-y,rgba(62,94,200,.045)) 1px, transparent 1px);
+  background-size:100% 100%,var(--grid-size,56px) var(--grid-size,56px),var(--grid-size,56px) var(--grid-size,56px);
+}
+.deck{
+  position:fixed;inset:0;overflow:hidden;z-index:1;
+}
+/* while the slide index is open, the deck (and its overlay) sit above the
+   fixed nav/dots/progress — the popover truly owns the viewport */
+body.menu-open .deck{z-index:12}
+/* transform lives on .track, not .deck: overflow clip applies in the
+   element's local space, so clipping + translating the same element
+   clips every slide beyond the first out of existence. */
+.track{display:flex;height:100%;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+.slide{
+  width:100vw;height:100vh;flex-shrink:0;
+  display:flex;flex-direction:column;
+  padding:120px 72px 64px;
+  position:relative;
+}
+/* frozen deck header — logo, wordmark and rule stay put while slides slide by */
+.deck-head{
+  position:absolute;top:56px;left:72px;right:72px;z-index:11;
+}
+/* brand lockup — frozen above every slide */
+.brand{
+  display:flex;align-items:center;gap:14px;flex:none;
+  cursor:pointer;
+}
+.brand a{
+  display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;
+}
+.brand a:focus-visible{outline:2px solid var(--beacon-600);border-radius:6px;outline-offset:4px}
+.brand svg.corona{width:44px;height:44px;flex:none}
+.brand-word{
+  font-family:var(--font-display);
+  font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--marine-900);
+}
+.brand-word b{font-weight:700}
+.brand-sub{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--marine-600);text-transform:uppercase;
+}
+/* slide index — styled dropdown on desktop, hamburger on mobile */
+.deck-menu{margin-left:auto;position:relative;font-family:var(--font-mono)}
+.menu-btn{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font:inherit;font-size:11px;letter-spacing:.08em;color:var(--marine-600);
+  background:none;border:1px solid transparent;border-radius:999px;padding:7px 12px;
+}
+.menu-btn:hover{color:var(--marine-900);background:var(--beacon-50)}
+.menu-caret{font-size:9px;color:var(--beacon-500)}
+.menu-burger{display:none}
+.menu-list{
+  position:absolute;top:calc(100% + 10px);right:0;min-width:250px;
+  background:var(--paper);border:1px solid var(--beacon-100);border-radius:12px;
+  box-shadow:0 10px 30px rgba(22,34,63,.14),0 1px 3px rgba(22,34,63,.08);
+  padding:6px;display:none;z-index:20;
+}
+.deck-menu.open .menu-list{display:block}
+.menu-list button{
+  display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
+  padding:9px 12px;border:0;border-radius:8px;background:none;cursor:pointer;
+  font:inherit;font-size:11px;letter-spacing:.06em;color:var(--marine-700);
+}
+.menu-list button:hover{background:var(--beacon-50);color:var(--marine-900)}
+.menu-list button.on{color:var(--beacon-700);background:var(--beacon-50)}
+.menu-list .mi{font-size:9px;color:var(--beacon-400);min-width:14px}
+.menu-list button.on .mi{color:var(--beacon-700)}
+.rule{
+  height:1px;background:var(--beacon-200);margin:18px 0 0;flex:none;
+}
+.stage{
+  flex:1;display:flex;flex-direction:column;justify-content:center;
+  max-width:1180px;margin:0 auto;width:100%;
+  padding:24px 0;
+}
+.eyebrow{
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--beacon-700);margin-bottom:18px;
+  display:flex;align-items:center;gap:12px;
+}
+.eyebrow::after{content:"";flex:0 0 56px;height:1px;background:var(--beacon-300)}
+h1,h2{
+  font-family:var(--font-display);color:var(--marine-950);
+  font-weight:500;letter-spacing:-0.01em;text-wrap:balance;
+}
+h1{font-size:clamp(44px,5.2vw,72px);line-height:1.04}
+h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
+.lede{
+  font-size:clamp(15px,1.35vw,19px);line-height:1.55;color:var(--marine-700);
+  max-width:56ch;margin-top:22px;
+}
+/* lede variants — absorb the inline styles the source deck used */
+.lede-after{margin-top:26px}
+.lede-flush{margin-top:0}
+.lede2{margin-top:24px;font-size:14px}
+.lede-followup{margin-top:18px}
+.note{
+  margin-top:26px;max-width:none;
+  font-family:var(--font-mono);font-size:13px;color:var(--marine-700);
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:34px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:34px}
+.card{
+  background:var(--paper);border:1px solid var(--beacon-100);
+  border-radius:14px;padding:22px 22px 20px;
+  box-shadow:0 1px 2px rgba(22,34,63,.05);
+}
+.card h3{
+  font-family:var(--font-display);font-size:19px;color:var(--marine-900);
+  margin-bottom:6px;font-weight:600;
+}
+.card p{font-size:13.5px;line-height:1.5;color:var(--marine-700)}
+.card .k{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--beacon-700);display:block;margin-bottom:8px;
+}
+.figure{
+  display:flex;align-items:center;justify-content:center;
+}
+/* numbers row */
+.stats{display:flex;gap:44px;margin-top:34px;flex-wrap:wrap}
+.stats-tight{margin-top:26px}
+.stat{flex:none}
+.stat b{
+  font-family:var(--font-display);font-size:40px;color:var(--beacon-700);
+  display:block;line-height:1;font-weight:600;
+}
+.stat span{font-size:12.5px;color:var(--marine-600);display:block;margin-top:7px;max-width:16ch;line-height:1.4}
+/* footer */
+.foot{
+  display:flex;justify-content:space-between;align-items:center;flex:none;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+  color:var(--marine-600);text-transform:uppercase;
+}
+/* controls */
+.nav{
+  position:fixed;right:22px;bottom:18px;z-index:10;display:flex;gap:12px;align-items:center;
+}
+#pageno{
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;
+  color:var(--marine-700);min-width:52px;text-align:center;font-variant-numeric:tabular-nums;
+}
+.nav button{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--beacon-200);
+  background:#fff;color:var(--beacon-700);cursor:pointer;font-size:16px;
+  box-shadow:0 1px 3px rgba(22,34,63,.12);
+}
+.nav button:hover{background:var(--beacon-50)}
+.progress{
+  position:fixed;left:0;bottom:0;height:3px;background:var(--beacon-600);
+  width:0;z-index:10;transition:width .45s cubic-bezier(.4,0,.2,1);
+}
+.dots{position:fixed;left:18px;bottom:18px;z-index:10;display:flex;gap:7px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--beacon-200)}
+.dots i.on{background:var(--beacon-700)}
+/* short viewports (landscape phones, resized windows) — scroll instead of crop;
+   restores vertical reachability without collapsing the desktop grids */
+@media (max-height:620px){
+  .slide{overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+    padding-top:96px;padding-bottom:84px}
+  .deck-head{top:24px}
+}
+@media (max-width:900px){
+  .slide{padding:96px 24px 84px;overflow-y:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .deck-head{top:24px;left:24px;right:24px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .brand-word{font-size:12px}
+  .menu-current,.menu-caret{display:none}
+  .menu-burger{display:flex;flex-direction:column;gap:4px}
+  .menu-burger i{width:16px;height:1.5px;background:var(--marine-800);border-radius:1px;transition:transform .25s,opacity .2s}
+  .menu-btn{padding:10px;background:#fff;border-color:var(--beacon-200);box-shadow:0 1px 3px rgba(22,34,63,.12);position:relative;z-index:30}
+  /* burger morphs into a close X while the index is open */
+  .deck-menu.open .menu-burger i:nth-child(1){transform:translateY(5.5px) rotate(45deg)}
+  .deck-menu.open .menu-burger i:nth-child(2){opacity:0}
+  .deck-menu.open .menu-burger i:nth-child(3){transform:translateY(-5.5px) rotate(-45deg)}
+  /* full-viewport popover: the slide index becomes the screen */
+  .menu-list{
+    position:fixed;inset:0;min-width:0;border:0;border-radius:0;
+    padding:96px 32px 40px;overflow-y:auto;z-index:20;
+    flex-direction:column;justify-content:safe center;
+    background-image:linear-gradient(to right, rgba(62,94,200,.05) 1px, transparent 1px),linear-gradient(to bottom, rgba(62,94,200,.045) 1px, transparent 1px);
+    background-size:56px 56px;
+  }
+  .deck-menu.open .menu-list{display:flex}
+  .menu-list button{
+    font-family:var(--font-display);font-size:clamp(20px,5.6vw,30px);
+    letter-spacing:0;color:var(--marine-800);
+    padding:16px 4px;gap:16px;border-radius:0;
+    border-bottom:1px solid var(--beacon-100);
+  }
+  .menu-list button:last-child{border-bottom:0}
+  .menu-list .mi{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em}
+}
+</style>
 </head>
 <body>
-  <header class="deck-head" aria-label="Deck header">
-    <div class="head-inner">
-      <a class="brand" id="brand" href="#/1" aria-label="{{BRAND_ALT}}">
-        <span class="brand-mark">{{LOGO_SVG}}</span>
-        <span class="brand-word">{{BRAND_WORD}}</span>
-      </a>
-      <span class="context-label" id="context-label" aria-live="polite">{{FIRST_CONTEXT}}</span>
-    </div>
+<main class="deck" id="deck">
+<div class="deck-head">
+  <header class="brand">
+    <a href="#/1" class="brand-home" title="Back to opening slide">
+      {{LOGO_SVG}}
+      <div class="brand-word">{{BRAND_WORD}}</div>
+    </a>
+    <nav class="deck-menu" id="deck-menu" aria-label="Slide index">
+      <button class="menu-btn" id="menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Slide index">
+        <span class="menu-current" id="menu-current"></span>
+        <span class="menu-caret" aria-hidden="true">&#9662;</span>
+        <span class="menu-burger" aria-hidden="true"><i></i><i></i><i></i></span>
+      </button>
+      <div class="menu-list" id="menu-list" role="menu"></div>
+    </nav>
   </header>
-
-  <main class="deck" role="main" aria-roledescription="carousel">
-    <div class="track" id="track" role="list">
-      {{SLIDES}}
-    </div>
-  </main>
-
-  <script>
-    (function() {
-      const track = document.getElementById('track');
-      const brand = document.getElementById('brand');
-      const context = document.getElementById('context-label');
-      const total = {{SLIDE_COUNT}};
-      let current = 1;
-
-      function setCounter() {
-        document.querySelectorAll('.count').forEach(function(el) {
-          el.textContent = current + ' / ' + total;
-        });
-        document.querySelectorAll('.nav button.prev').forEach(function(b) { b.disabled = current === 1; });
-        document.querySelectorAll('.nav button.next').forEach(function(b) { b.disabled = current === total; });
-      }
-
-      function updateHeader() {
-        const active = track.children[current - 1];
-        if (active && active.dataset.context) context.textContent = active.dataset.context;
-      }
-
-      function go(n, push) {
-        if (n < 1 || n > total) return;
-        current = n;
-        track.style.transform = 'translateX(' + (-(current - 1) * 100) + 'vw)';
-        updateHeader();
-        setCounter();
-        if (push !== false && history.replaceState) {
-          history.replaceState(null, '', '#/' + current);
-        }
-      }
-
-      function hashSlide() {
-        const m = location.hash.match(/^#\/(\d+)$/);
-        return m ? parseInt(m[1], 10) : 1;
-      }
-
-      document.querySelectorAll('.nav button.prev').forEach(function(b) { b.addEventListener('click', function() { go(current - 1); }); });
-      document.querySelectorAll('.nav button.next').forEach(function(b) { b.addEventListener('click', function() { go(current + 1); }); });
-
-      brand.addEventListener('click', function(e) {
-        e.preventDefault();
-        go(1);
-      });
-
-      window.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft') go(current - 1);
-        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar') {
-          e.preventDefault();
-          go(current + 1);
-        }
-      });
-
-      window.addEventListener('hashchange', function() { go(hashSlide(), false); });
-
-      go(hashSlide(), false);
-    })();
-  </script>
+  <div class="rule"></div>
+</div>
+<div class="track" id="track">
+{{SLIDES}}
+</div>
+</main>
+<div class="dots" id="dots"></div>
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">&#8249;</button>
+  <span id="pageno" aria-live="polite">1 / {{SLIDE_COUNT}}</span>
+  <button id="next" aria-label="Next slide">&#8250;</button>
+</div>
+<div class="progress" id="progress"></div>
+<script>
+(function(){
+  var track=document.getElementById('track');
+  var pageno=document.getElementById('pageno');
+  var menu=document.getElementById('deck-menu');
+  var menuList=document.getElementById('menu-list');
+  var menuCurrent=document.getElementById('menu-current');
+  var menuBtn=document.getElementById('menu-btn');
+  var slides=[],n=0;
+  // Clean paths (deck root = slide 1, /2../N after) over http(s).
+  // file:// cannot pushState across paths, so it keeps hash routing.
+  var usePath=location.protocol!=='file:';
+  function baseUrl(){
+    var p=location.pathname.replace(/\/\d+\/?$/,'').replace(/index\.html$/,'');
+    return p.slice(-1)==='/'?p:p+'/';
+  }
+  function urlFor(i){return i<=0?baseUrl():baseUrl()+(i+1)}
+  function slideFromUrl(){
+    var m=location.pathname.match(/\/(\d+)\/?$/);
+    if(m)return parseInt(m[1],10);
+    m=(location.hash||'').match(/^#\/?(\d+)$/);   // legacy #/N links still resolve
+    return m?parseInt(m[1],10):1;
+  }
+  function closeMenu(){menu.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');document.body.classList.remove('menu-open')}
+  function go(i,skipUrl){
+    n=Math.max(0,Math.min(slides.length-1,i));
+    track.style.transform='translateX(-'+(n*100)+'vw)';
+    var dots=document.querySelectorAll('.dots i');
+    for(var k=0;k<dots.length;k++)dots[k].classList.toggle('on',k===n);
+    var items=menuList.children;
+    for(var j=0;j<items.length;j++)items[j].classList.toggle('on',j===n);
+    document.getElementById('progress').style.width=((n+1)/slides.length*100)+'%';
+    pageno.textContent=(n+1)+' / '+slides.length;
+    menuCurrent.textContent=slides[n].getAttribute('data-context')||'';
+    if(skipUrl)return;
+    if(usePath){
+      try{history.pushState(null,'',urlFor(n));}
+      catch(e){usePath=false;location.hash='/'+(n+1);}
+    }else{
+      location.hash='/'+(n+1);
+    }
+  }
+  window.__initDeck=function(){
+    slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var dotsEl=document.getElementById('dots');
+    dotsEl.innerHTML='';menuList.innerHTML='';
+    slides.forEach(function(s,k){
+      dotsEl.appendChild(document.createElement('i'));
+      var b=document.createElement('button');
+      b.setAttribute('role','menuitem');
+      b.innerHTML='<span class="mi">'+('0'+(k+1)).slice(-2)+'</span><span></span>';
+      b.lastChild.textContent=s.getAttribute('data-context')||('Slide '+(k+1));
+      b.onclick=function(){go(k);closeMenu();};
+      menuList.appendChild(b);
+    });
+    go(slideFromUrl()-1);
+    if(usePath){try{history.replaceState(null,'',urlFor(n));}catch(e){usePath=false;}}
+  };
+  document.getElementById('prev').onclick=function(){go(n-1)};
+  document.getElementById('next').onclick=function(){go(n+1)};
+  menuBtn.onclick=function(e){
+    e.stopPropagation();
+    var open=menu.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded',open?'true':'false');
+    document.body.classList.toggle('menu-open',open);
+  };
+  // Tap the popover's empty backdrop to dismiss it.
+  menuList.addEventListener('click',function(e){
+    if(e.target===menuList)closeMenu();
+  });
+  // Click any brand lockup (top-left logo) to reset to the opening slide.
+  document.addEventListener('click',function(e){
+    if(!e.target.closest||!e.target.closest('#deck-menu'))closeMenu();
+    var a=e.target && e.target.closest ? e.target.closest('.brand-home') : null;
+    if(!a) return;
+    e.preventDefault();
+    go(0);
+    a.blur();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){closeMenu();return;}
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(n+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp')go(n-1);
+    if(e.key==='Home')go(0);if(e.key==='End')go(slides.length-1);
+  });
+  __initDeck();
+  // Back/forward buttons follow history; manual hash edits still navigate.
+  window.addEventListener('popstate',function(){
+    var i=slideFromUrl();
+    if((i-1)!==n) go(i-1,true);
+  });
+  window.addEventListener('hashchange',function(){
+    var i=slideFromUrl();
+    if((i-1)!==n) go(i-1);
+  });
+  // Prevent iOS Safari / old WebKit from skipping the very first paint.
+  requestAnimationFrame(function(){ go(n); });
+})();
+</script>
 </body>
 </html>

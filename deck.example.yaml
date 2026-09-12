@@ -1,10 +1,11 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# HelmChart example deck — the Saint Elms Fire intro, ported 1:1 from the
+# HelmsMate example deck — the Saint Elms Fire intro, ported 1:1 from the
 # hand-built index.html. Every editorial string lives here; the engine owns
 # layout, theming, navigation and the invariant guards.
 #
 # Conventions:
-#   title / note / stat.small : newlines render as <br>   (you own the breaks)
+#   title : one line — the browser wraps it (text-wrap:balance)
+#   note / stat.small : newlines render as <br>           (you own the breaks)
 #   lede / lede_after / card body: newlines are collapsed (natural flow)
 #   **text** renders <b>text</b> in any prose field
 #   figure accepts a raw SVG block, passed through untouched
@@ -26,9 +27,7 @@ slides:
   - layout: opener
     context: Intent · Purpose · Vision
     eyebrow: An AI-native LMS
-    title: |
-      Guidance through
-      the storm.
+    title: Guidance through the storm.
     lede: >-
       Most learning platforms are digital filing cabinets — they store, track,
       and file. Saint Elms Fire puts learning back at the masthead, built with
@@ -47,9 +46,7 @@ slides:
   - layout: cards2
     context: Why we built it
     eyebrow: The diagnosis
-    title: |
-      Most LMSs are designed for Management.
-      Learning deserves its own architect.
+    title: Most LMSs are designed for Management. Learning deserves its own architect.
     cards:
       - k: The incumbent
         h: Designed for administrators
@@ -73,9 +70,7 @@ slides:
   - layout: cards3
     context: Three vital features
     eyebrow: The vision
-    title: |
-      What good is AI if it cannot take on
-      100× the work a human can?
+    title: What good is AI if it cannot take on 100× the work a human can?
     cards:
       - k: 01 · The Second Brain
         h: A personal Karpathy-style wiki
@@ -101,9 +96,8 @@ slides:
   - layout: figure2
     context: Feature 01 · The Second Brain
     eyebrow: 01 · A living constellation
-    title: |
-      From Day 1, Elms builds you
-      a second brain.
+    grid_mt: 20
+    title: From Day 1, Elms builds you a second brain.
     figure: |
       <svg viewBox="0 0 420 260" style="width:100%;max-width:460px;height:auto">
         <defs>
@@ -173,9 +167,8 @@ slides:
   - layout: cards3
     context: Feature 02 · Multimodal Notes
     eyebrow: 02 · AI at the learner’s service
-    title: |
-      Every learner, a different temperament.
-      Every learner, notes in their own mode.
+    grid_mt: 26
+    title: Every learner, a different temperament. Every learner, notes in their own mode.
     cards:
       - k: PDF Study Notes
         h: For the visual reader
@@ -202,9 +195,8 @@ slides:
   - layout: cards3
     context: Feature 03 · The Socratic Trident
     eyebrow: 03 · Three domains, not one generalist
-    title: |
-      One chatbot can only do an average job.
-      We give you three — each with a domain.
+    grid_mt: 26
+    title: One chatbot can only do an average job. We give you three — each with a domain.
     cards:
       - k: ◦ Socrates my Friend
         h: Course operations
@@ -231,6 +223,7 @@ slides:
   - layout: cards2
     context: How it’s built
     eyebrow: Production-grade, end-to-end
+    grid_mt: 22
     title: |
       Simple architecture. Real engineering.
       No demo tricks.
