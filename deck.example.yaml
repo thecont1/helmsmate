@@ -1,0 +1,281 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# HelmChart example deck — the Saint Elms Fire intro, ported 1:1 from the
+# hand-built index.html. Every editorial string lives here; the engine owns
+# layout, theming, navigation and the invariant guards.
+#
+# Conventions:
+#   title / note / stat.small : newlines render as <br>   (you own the breaks)
+#   lede / lede_after / card body: newlines are collapsed (natural flow)
+#   **text** renders <b>text</b> in any prose field
+#   figure accepts a raw SVG block, passed through untouched
+# ──────────────────────────────────────────────────────────────────────────────
+
+deck:
+  title: "Saint Elms Fire — Intent · Vision · The Learner First"
+  brand:
+    mark: assets/sef-corona.svg          # inlined at build; favicon data-URI too
+    word: "Saint **Elms** Fire"          # **bold** segment supported
+    alt: "Saint Elms Fire CoronaMark"
+    reset_on_click: true                  # clicking the mark returns to slide 1
+
+theme: mariners-chart
+
+slides:
+
+  # ════════════════════════ 1 · OPENER ════════════════════════
+  - layout: opener
+    context: Intent · Purpose · Vision
+    eyebrow: An AI-native LMS
+    title: |
+      Guidance through
+      the storm.
+    lede: >-
+      Most learning platforms are digital filing cabinets — they store, track,
+      and file. Saint Elms Fire puts learning back at the masthead, built with
+      the **learner** as the primary user. Every learner is different; this
+      is the core idea the whole system is designed around.
+    stats:
+      - big: "3"
+        small: "Focus areas: Friend, Philosopher, Guide"
+      - big: Day 1
+        small: Your second brain starts building
+      - big: "∞"
+        small: Multimodal AI at the learner’s service
+    foot: St. Elmo’s fire · the blue-white corona at the masthead
+
+  # ════════════════════════ 2 · THE DIAGNOSIS ════════════════════════
+  - layout: cards2
+    context: Why we built it
+    eyebrow: The diagnosis
+    title: |
+      Most LMSs are designed for Management.
+      Learning deserves its own architect.
+    cards:
+      - k: The incumbent
+        h: Designed for administrators
+        p: >-
+          Proctored rows, attendance matrices, gradebooks, RBAC, course
+          assignment. The learner is a passive row in someone else’s
+          dashboard. Content is warehoused, not taught.
+      - k: The correction
+        h: Designed for the learner
+        p: >-
+          Elms inverts the hierarchy. The primary user is the student; every
+          management feature falls out of serving them. The interface speaks
+          the mariner’s tongue — a chart, a compass, a beacon — not a
+          spreadsheet.
+    note: |
+      Every learner is different.
+      Temperament, pace, modality, prior knowledge — the system starts there.
+    foot: The learner is the primary user
+
+  # ════════════════════════ 3 · VISION PILLARS ════════════════════════
+  - layout: cards3
+    context: Three vital features
+    eyebrow: The vision
+    title: |
+      What good is AI if it cannot take on
+      100× the work a human can?
+    cards:
+      - k: 01 · The Second Brain
+        h: A personal Karpathy-style wiki
+        p: >-
+          Built from Day 1 and grown day-over-day to match and support each
+          learner to the end of their course.
+      - k: 02 · Multimodal AI
+        h: Notes that fit the temperament
+        p: >-
+          Custom course notes generated per learner — PDF, podcast,
+          and whatever format meets them where they are.
+      - k: 03 · The Socratic Trident
+        h: Three chatbots, three focused domains
+        p: >-
+          Friend, Philosopher, Guide — 24/7 companions that answer,
+          challenge, and push the learner further than one generalist bot can.
+    lede_after: >-
+      These are not features bolted on. They are the load-bearing design
+      decisions that follow from taking the learner seriously.
+    foot: AI that takes on 100× the work
+
+  # ════════════════════════ 4 · SECOND BRAIN ════════════════════════
+  - layout: figure2
+    context: Feature 01 · The Second Brain
+    eyebrow: 01 · A living constellation
+    title: |
+      From Day 1, Elms builds you
+      a second brain.
+    figure: |
+      <svg viewBox="0 0 420 260" style="width:100%;max-width:460px;height:auto">
+        <defs>
+          <radialGradient id="glow" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="#3E5EC0" stop-opacity=".55"/>
+            <stop offset="100%" stop-color="#3E5EC0" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="420" height="260" fill="none"/>
+        <circle cx="210" cy="130" r="90" fill="url(#glow)"/>
+        <circle cx="210" cy="130" r="7" fill="#3E5EC0"/>
+        <circle cx="210" cy="130" r="12" fill="none" stroke="#3E5EC0" stroke-width=".7" opacity=".5"/>
+        <g fill="none" stroke="#9EB3E6" stroke-width=".6" opacity=".7">
+          <circle cx="210" cy="130" r="36"/>
+          <circle cx="210" cy="130" r="66"/>
+          <circle cx="210" cy="130" r="102" stroke-dasharray="3 4"/>
+        </g>
+        <g fill="#4A68C8">
+          <circle cx="246" cy="130" r="3.4"/><circle cx="235" cy="104" r="2.6"/>
+          <circle cx="190" cy="112" r="2.4"/><circle cx="186" cy="150" r="3"/>
+          <circle cx="238" cy="152" r="2.2"/>
+        </g>
+        <g fill="#3452AE">
+          <circle cx="276" cy="130" r="3.8"/><circle cx="258" cy="92" r="3"/>
+          <circle cx="162" cy="105" r="3.2"/><circle cx="168" cy="166" r="2.8"/>
+          <circle cx="262" cy="163" r="3.4"/><circle cx="232" cy="80" r="2.6"/>
+          <circle cx="180" cy="86" r="2.4"/>
+        </g>
+        <g fill="#2A4190">
+          <circle cx="312" cy="130" r="4"/><circle cx="272" cy="58" r="3"/>
+          <circle cx="138" cy="88" r="3.4"/><circle cx="142" cy="184" r="3"/>
+          <circle cx="294" cy="170" r="2.8"/><circle cx="240" cy="50" r="2.4"/>
+        </g>
+        <circle cx="272" cy="58" r="6.2" fill="none" stroke="#3E5EC0" stroke-width=".8" stroke-dasharray="2 2.5" opacity=".85"/>
+        <circle cx="138" cy="88" r="6" fill="none" stroke="#3E5EC0" stroke-width=".8" stroke-dasharray="2 2.5" opacity=".85"/>
+        <g stroke="#4A68C8" stroke-width=".4" opacity=".45">
+          <line x1="246" y1="130" x2="258" y2="92"/>
+          <line x1="210" y1="130" x2="162" y2="105"/>
+          <line x1="276" y1="130" x2="272" y2="58"/>
+          <line x1="186" y1="150" x2="168" y2="166"/>
+          <line x1="262" y1="163" x2="294" y2="170"/>
+          <line x1="190" y1="112" x2="162" y2="105"/>
+          <line x1="238" y1="152" x2="262" y2="163"/>
+        </g>
+        <text x="210" y="244" font-family="Menlo,monospace" font-size="9" fill="#39588F" text-anchor="middle" letter-spacing=".14em">YEAR 1 · YEAR 2 · YEAR 3 · PEER-SHARED</text>
+      </svg>
+    lede: >-
+      A Karpathy-style wiki in the shape of a personal knowledge graph.
+      Every concept you touch becomes a star in your constellation &
+      it adds up quiet, daily, from first lesson to last.
+    stats:
+      - big: "36"
+        small: |
+          stars, Year 1
+          (Ananya’s growth)
+      - big: "236"
+        small: |
+          stars, Year 3
+          (Chetna’s constellation)
+    lede2: >-
+      The student watches their own mind light up. Peers who engaged
+      the same concept appear as dashed rings — learning as a shared,
+      visible sky.
+    foot: A second brain, made visible
+
+  # ════════════════════════ 5 · MULTIMODAL ════════════════════════
+  - layout: cards3
+    context: Feature 02 · Multimodal Notes
+    eyebrow: 02 · AI at the learner’s service
+    title: |
+      Every learner, a different temperament.
+      Every learner, notes in their own mode.
+    cards:
+      - k: PDF Study Notes
+        h: For the visual reader
+        p: >-
+          Structured, lecture-accurate notes rendered from your released
+          courseware. Clean Tufte-aware layout, plotted for re-reading.
+      - k: Generated Podcasts
+        h: For the auditory learner
+        p: >-
+          Scripted by AI, voiced to audio, grounded in the same courseware
+          as the PDF. Listen on the bus, before the exam, on repeat.
+      - k: Customised to You
+        h: For the way you think
+        p: >-
+          Slower or faster, analogy-first or definition-first, math-heavy or
+          narrative — the notes adapt to your temperament, not the other way round.
+    lede_after: >-
+      This is multimodal AI doing real work — not one-size-fits-all
+      chat transcripts, but a course that renders itself into the shape
+      each learner needs.
+    foot: Multi-modal AI, in service of one learner
+
+  # ════════════════════════ 6 · SOCRATIC TRIDENT ════════════════════════
+  - layout: cards3
+    context: Feature 03 · The Socratic Trident
+    eyebrow: 03 · Three domains, not one generalist
+    title: |
+      One chatbot can only do an average job.
+      We give you three — each with a domain.
+    cards:
+      - k: ◦ Socrates my Friend
+        h: Course operations
+        p: >-
+          Fees, calendars, deadlines, university offices, policies —
+          the business of study, kept warm and precise.
+      - k: ◦ Socrates my Philosopher
+        h: Ideas & the wider world
+        p: >-
+          Connects released concepts beyond the syllabus — every claim
+          marked [course] or [web], every answer a new trailhead.
+      - k: ◦ Socrates my Guide
+        h: Courseware, directly
+        p: >-
+          Answers strictly from your unlocked lessons. RAG-grounded,
+          provenance-tagged, hallucination-resistant.
+    lede_after: >-
+      24/7, all three. Each with a focused domain — together far more
+      capable than a single generalist agent, because the boundaries between
+      course ops, ideas, and courseware are real and worth honouring.
+    foot: Friend · Philosopher · Guide
+
+  # ════════════════════════ 7 · THE STACK ════════════════════════
+  - layout: cards2
+    context: How it’s built
+    eyebrow: Production-grade, end-to-end
+    title: |
+      Simple architecture. Real engineering.
+      No demo tricks.
+    cards:
+      - k: The pipeline
+        h: Courseware → Second Brain → Artifacts
+        p: >-
+          Real B.Sc courseware (Christ University, Bangalore) is chunked,
+          embedded, and grounded in Firestore vector search. GenKit
+          orchestrates four production flows: **guide-chat**,
+          **socratic-tutor**, **multi-format**, **ingestion**. Gemini 3.7
+          Flash is the primary LLM with a Sarvam fallback. Cloud Run hosts
+          the service; Secret Manager locks the keys.
+      - k: The hardening
+        h: What separates product from prototype
+        p: >-
+          Generation-aware circuit breaker, idempotent retries with
+          deterministic document IDs, structured error classification,
+          250 tests passing, accessibility (WCAG) built in from Phase 9,
+          RAG validated at scale after a real retrieval failure at 219+
+          lessons.
+    stats:
+      - big: Next 14
+        small: the stack · Bun + TypeScript + Tailwind
+      - big: GCP
+        small: Cloud Run · Firestore · GCS · Vertex AI
+      - big: "250"
+        small: tests green · routing · retrieval · retries
+    foot: Underpinned by real engineering discipline
+
+  # ════════════════════════ 8 · CLOSER ════════════════════════
+  - layout: closer
+    context: The invitation
+    eyebrow: The vision, stated plainly
+    title: |
+      Every learner is different.
+      The system should be, too.
+    lede: >-
+      St. Elmo’s fire appears at the masthead when sailors have weathered
+      the worst of the storm — a quiet blue light that says the way
+      is navigable. Saint Elms Fire is the same signal for the learner.
+      A second brain growing for you. Notes in the shape you think in.
+      A Friend, a Philosopher, and a Guide beside you, day and night.
+    lede2: >-
+      This is learner-first education, built deliberately —
+      and in the open. Code and courseware at
+      **github.com/thecont1/saint-elms-fire**.
+    foot: Saint Elms Fire · Guidance through the storm
