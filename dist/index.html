@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Saint Elms Fire — Intent · Vision · The Learner First</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJTYWludCBFbG1zIEZpcmUg4oCUIENvcm9uYU1hcmsiPgogIDwhLS0KICAgIE9mZmljaWFsIFNhaW50IEVsbXMgRmlyZSBDb3JvbmFNYXJrLCByZWJ1aWx0IGZyb20gc3JjL2NvbXBvbmVudHMvTmF2aWdhdGlvbi50c3gKICAgICh0aGUgY29yb25hIHNwYXJrOiBTdC4gRWxtbydzIGZpcmUgcmFkaWF0aW5nIGF0IHRoZSBtYXN0aGVhZCkuCiAgICBFeGFjdCBnZW9tZXRyeSBzY2FsZWQgw5coOC8zKSBmcm9tIHRoZSAyNMOXMjQgdmlld0JveCBvbnRvIGEgNjTDlzY0IGJhZGdlIGRpc2MuCiAgICBiZWFjb24tNjAwIGRpc2MgwrcgcGFwZXItd2hpdGUgY29yb25hIMK3IDQgbG9uZyByYXlzIChOL0UvUy9XKSArIDQgc2hvcnQgcmF5cyAoZGlhZ29uYWxzKS4KICAtLT4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyOC41IiBmaWxsPSIjM0U1RUMwIi8+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0Y2RjdGQiIgc3Ryb2tlLXdpZHRoPSIxLjIiIG9wYWNpdHk9IjAuNDUiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMiwzMikiPgogICAgPGNpcmNsZSByPSI1LjQiIGZpbGw9IiNGNkY3RkIiLz4KICAgIDwhLS0gOCByYXlzOiBldmVuID0gbG9uZyAoc3Ryb2tlV2lkdGggMiksIG9kZCA9IHNob3J0ICgxLjQpIOKAlCBtYXRjaGVzIENvcm9uYU1hcmsgLS0+CiAgICA8ZyBzdHJva2U9IiNGNkY3RkIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICAgIDxsaW5lIHgxPSI5LjEiICB5MT0iMCIgICAgIHgyPSIxNy45IiAgeTI9IjAiICAgICAgc3Ryb2tlLXdpZHRoPSIzLjQiLz4KICAgICAgPGxpbmUgeDE9IjYuNCIgIHkxPSI2LjQiICAgeDI9IjEyLjI1IiB5Mj0iMTIuMjUiICBzdHJva2Utd2lkdGg9IjIuNCIvPgogICAgICA8bGluZSB4MT0iMCIgICAgeTE9IjkuMSIgICB4Mj0iMCIgICAgIHkyPSIxNy45IiAgIHN0cm9rZS13aWR0aD0iMy40Ii8+CiAgICAgIDxsaW5lIHgxPSItNi40IiB5MT0iNi40IiAgIHgyPSItMTIuMjUiIHkyPSIxMi4yNSIgc3Ryb2tlLXdpZHRoPSIyLjQiLz4KICAgICAgPGxpbmUgeDE9Ii05LjEiIHkxPSIwIiAgICAgeDI9Ii0xNy45IiB5Mj0iMCIgICAgICBzdHJva2Utd2lkdGg9IjMuNCIvPgogICAgICA8bGluZSB4MT0iLTYuNCIgeTE9Ii02LjQiICB4Mj0iLTEyLjI1IiB5Mj0iLTEyLjI1IiBzdHJva2Utd2lkdGg9IjIuNCIvPgogICAgICA8bGluZSB4MT0iMCIgICAgeTE9Ii05LjEiICB4Mj0iMCIgICAgIHkyPSItMTcuOSIgIHN0cm9rZS13aWR0aD0iMy40Ii8+CiAgICAgIDxsaW5lIHgxPSI2LjQiICB5MT0iLTYuNCIgIHgyPSIxMi4yNSIgeTI9Ii0xMi4yNSIgc3Ryb2tlLXdpZHRoPSIyLjQiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==" />
+  <style>
+    :root {
+      /* theme variables */
+    --name: Mariner's Chart;
+    --colors-paper: #FBFBFD;
+    --colors-chart: #F5F7FB;
+    --colors-beacon-50: #EFF3FA;
+    --colors-beacon-100: #E4EAF7;
+    --colors-beacon-200: #C9D6EF;
+    --colors-beacon-300: #9EB3E6;
+    --colors-beacon-400: #6E8BD9;
+    --colors-beacon-500: #4A68C8;
+    --colors-beacon-600: #3E5EC0;
+    --colors-beacon-700: #3452AE;
+    --colors-beacon-800: #2A4190;
+    --colors-beacon-900: #1F2F66;
+    --colors-marine-600: #39588F;
+    --colors-marine-700: #2C4A80;
+    --colors-marine-800: #243C6B;
+    --colors-marine-900: #1D2F56;
+    --colors-marine-950: #16223F;
+    --fonts-display: "Iowan Old Style","Big Caslon",Georgia,"Times New Roman",serif;
+    --fonts-sans: "Avenir Next","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --fonts-mono: Menlo,"SF Mono",Monaco,Consolas,monospace;
+    --effects-grid_glow: rgba(62,94,200,.10);
+    --effects-grid_line_x: rgba(62,94,200,.05);
+    --effects-grid_line_y: rgba(62,94,200,.045);
+    --effects-grid_size: 56;
+    --effects-card_shadow: 0 1px 2px rgba(22,34,63,.05);
+    --effects-nav_shadow: 0 1px 3px rgba(22,34,63,.12);
+
+      /* Hard-wired invariant guard values. These are intentionally explicit.
+         If a future theme omits them, the deck still renders. */
+      --_paper: #FBFBFD;
+      --_chart: #F5F7FB;
+      --_beacon-700: #3452AE;
+      --_beacon-800: #2A4190;
+      --_beacon-500: #4A68C8;
+      --_beacon-600: #3E5EC0;
+      --_beacon-900: #1F2F66;
+      --_marine-700: #2C4A80;
+      --_marine-800: #243C6B;
+      --_marine-900: #1D2F56;
+      --_marine-950: #16223F;
+      --_font-display: "Iowan Old Style","Big Caslon",Georgia,"Times New Roman",serif;
+      --_font-sans: "Avenir Next","Helvetica Neue",Helvetica,Arial,sans-serif;
+      --_font-mono: Menlo,"SF Mono",Monaco,Consolas,monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; height: 100%; }
+
+    body {
+      font-family: var(--font-sans, var(--_font-sans));
+      background: var(--chart, var(--_chart));
+      color: var(--marine-900, var(--_marine-900));
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 70% 30%, var(--grid-glow, rgba(62,94,200,.10)), transparent 45%),
+        repeating-linear-gradient(0deg, transparent, transparent calc(var(--grid-size, 56px) - 1px), var(--grid-line-y, rgba(62,94,200,.045)) var(--grid-size, 56px)),
+        repeating-linear-gradient(90deg, transparent, transparent calc(var(--grid-size, 56px) - 1px), var(--grid-line-x, rgba(62,94,200,.05)) var(--grid-size, 56px));
+    }
+
+    .deck {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .deck-head {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      padding: 28px 48px 0;
+      pointer-events: none;
+    }
+
+    .head-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--marine-700, var(--_marine-700));
+      padding-bottom: 18px;
+      pointer-events: auto;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .brand-mark { display: block; width: 44px; height: 44px; }
+    .brand-mark svg { display: block; width: 100%; height: 100%; }
+    .brand-word { font-family: var(--font-display, var(--_font-display)); font-size: 22px; color: var(--marine-950, var(--_marine-950)); letter-spacing: -0.02em; }
+    .brand-word b { font-weight: 700; color: var(--beacon-800, var(--_beacon-800)); }
+
+    .context-label { font-family: var(--font-mono, var(--_font-mono)); font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--beacon-700, var(--_beacon-700)); }
+
+    .track {
+      display: flex;
+      height: 100%;
+      transition: transform .55s cubic-bezier(.4,0,.2,1);
+      will-change: transform;
+    }
+
+    .slide {
+      width: 100vw;
+      height: 100%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 120px 48px 88px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stage {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stage-foot {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 48px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 11px;
+      color: var(--beacon-700, var(--_beacon-700));
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(251,251,253,.92);
+      border: 1px solid var(--beacon-200, #C9D6EF);
+      border-radius: 999px;
+      padding: 6px 16px;
+      box-shadow: 0 1px 3px rgba(22,34,63,.12);
+    }
+
+    .nav button {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: var(--paper, var(--_paper));
+      color: var(--beacon-800, var(--_beacon-800));
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s;
+    }
+
+    .nav button:hover { background: var(--beacon-100, #E4EAF7); color: var(--beacon-900, var(--_beacon-900)); }
+    .nav button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .count { min-width: 40px; text-align: center; font-size: 12px; font-weight: 600; color: var(--marine-900, var(--_marine-900)); letter-spacing: 0.04em; }
+
+    .eyebrow {
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--beacon-700, var(--_beacon-700));
+      margin: 0 0 14px;
+    }
+
+    h2 {
+      font-family: var(--font-display, var(--_font-display));
+      font-size: clamp(36px, 4.2vw, 62px);
+      line-height: 1.08;
+      color: var(--marine-950, var(--_marine-950));
+      margin: 0 0 22px;
+    }
+
+    .lede, .lede2, .slide p {
+      font-size: clamp(16px, 1.45vw, 20px);
+      line-height: 1.55;
+      color: var(--marine-800, var(--_marine-800));
+      max-width: 62ch;
+    }
+
+    .lede b, .lede2 b, .slide p b { color: var(--beacon-800, var(--_beacon-800)); font-weight: 600; }
+
+    .note {
+      margin-top: 28px;
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--beacon-700, var(--_beacon-700));
+      border-left: 2px solid var(--beacon-400, #6E8BD9);
+      padding-left: 16px;
+    }
+
+    .grid2, .grid3 {
+      display: grid;
+      gap: 24px;
+      width: 100%;
+      margin-top: 18px;
+    }
+    .grid2 { grid-template-columns: repeat(2, 1fr); }
+    .grid3 { grid-template-columns: repeat(3, 1fr); }
+
+    .card {
+      background: var(--paper, var(--_paper));
+      border: 1px solid var(--beacon-200, #C9D6EF);
+      border-radius: 16px;
+      padding: 26px 28px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 2px rgba(22,34,63,.05);
+    }
+
+    .card .k {
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--beacon-600, var(--_beacon-600));
+      margin-bottom: 8px;
+    }
+
+    .card h3 {
+      font-family: var(--font-display, var(--_font-display));
+      font-size: clamp(22px, 1.9vw, 30px);
+      line-height: 1.15;
+      color: var(--marine-900, var(--_marine-900));
+      margin: 0 0 12px;
+    }
+
+    .card p { font-size: clamp(14px, 1.15vw, 17px); line-height: 1.55; color: var(--marine-700, var(--_marine-700)); margin: 0; }
+    .card p b { color: var(--beacon-800, var(--_beacon-800)); font-weight: 600; }
+
+    .statline {
+      display: flex;
+      gap: 40px;
+      margin-top: 34px;
+    }
+
+    .stat { text-align: left; }
+    .stat .big {
+      font-family: var(--font-display, var(--_font-display));
+      font-size: clamp(44px, 4.4vw, 76px);
+      color: var(--beacon-800, var(--_beacon-800));
+      line-height: 1;
+    }
+    .stat .small {
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 11px;
+      line-height: 1.45;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--marine-700, var(--_marine-700));
+      margin-top: 8px;
+    }
+
+    .figure2-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .figure-wrap { display: flex; justify-content: center; align-items: center; }
+    .figure-wrap svg { max-width: 100%; height: auto; }
+
+    .closer { text-align: center; align-items: center; }
+    .closer .stage { align-items: center; }
+    .closer h2 { text-align: center; }
+    .closer .lede, .closer .lede2 { max-width: 58ch; text-align: center; }
+
+    .github-link {
+      display: inline-block;
+      margin-top: 6px;
+      font-family: var(--font-mono, var(--_font-mono));
+      font-size: 12px;
+      color: var(--beacon-700, var(--_beacon-700));
+      text-decoration: none;
+      border-bottom: 1px solid var(--beacon-400, #6E8BD9);
+    }
+    .github-link:hover { color: var(--beacon-900, var(--_beacon-900)); border-color: var(--beacon-700, var(--_beacon-700)); }
+
+    @media (max-width: 980px) {
+      .deck-head { padding: 20px 28px 0; }
+      .slide { padding: 96px 28px 84px; overflow-y: auto; }
+      .grid2 { grid-template-columns: 1fr; }
+      .grid3 { grid-template-columns: 1fr; }
+      .figure2-stage { grid-template-columns: 1fr; }
+      .statline { flex-wrap: wrap; gap: 24px; }
+      .stage-foot { padding: 18px 28px 22px; }
+    }
+
+    @media (max-width: 640px) {
+      .brand-word { display: none; }
+      .context-label { font-size: 10px; }
+      .slide { padding: 92px 22px 80px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="deck-head" aria-label="Deck header">
+    <div class="head-inner">
+      <a class="brand" id="brand" href="#/1" aria-label="Saint Elms Fire CoronaMark">
+        <span class="brand-mark"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Saint Elms Fire — CoronaMark">
+  <!--
+    Official Saint Elms Fire CoronaMark, rebuilt from src/components/Navigation.tsx
+    (the corona spark: St. Elmo's fire radiating at the masthead).
+    Exact geometry scaled ×(8/3) from the 24×24 viewBox onto a 64×64 badge disc.
+    beacon-600 disc · paper-white corona · 4 long rays (N/E/S/W) + 4 short rays (diagonals).
+  -->
+  <circle cx="32" cy="32" r="28.5" fill="#3E5EC0"/>
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#F6F7FB" stroke-width="1.2" opacity="0.45"/>
+  <g transform="translate(32,32)">
+    <circle r="5.4" fill="#F6F7FB"/>
+    <!-- 8 rays: even = long (strokeWidth 2), odd = short (1.4) — matches CoronaMark -->
+    <g stroke="#F6F7FB" stroke-linecap="round">
+      <line x1="9.1"  y1="0"     x2="17.9"  y2="0"      stroke-width="3.4"/>
+      <line x1="6.4"  y1="6.4"   x2="12.25" y2="12.25"  stroke-width="2.4"/>
+      <line x1="0"    y1="9.1"   x2="0"     y2="17.9"   stroke-width="3.4"/>
+      <line x1="-6.4" y1="6.4"   x2="-12.25" y2="12.25" stroke-width="2.4"/>
+      <line x1="-9.1" y1="0"     x2="-17.9" y2="0"      stroke-width="3.4"/>
+      <line x1="-6.4" y1="-6.4"  x2="-12.25" y2="-12.25" stroke-width="2.4"/>
+      <line x1="0"    y1="-9.1"  x2="0"     y2="-17.9"  stroke-width="3.4"/>
+      <line x1="6.4"  y1="-6.4"  x2="12.25" y2="-12.25" stroke-width="2.4"/>
+    </g>
+  </g>
+</svg></span>
+        <span class="brand-word">Saint <b>Elms</b> Fire</span>
+      </a>
+      <span class="context-label" id="context-label" aria-live="polite">Intent · Purpose · Vision</span>
+    </div>
+  </header>
+
+  <main class="deck" role="main" aria-roledescription="carousel">
+    <div class="track" id="track" role="list">
+      <section class="slide opener" data-context="Intent · Purpose · Vision" data-layout="opener" role="listitem" aria-label="Slide 1">
+  <div class="stage">
+<p class="eyebrow">An AI-native LMS</p>
+<h2>Guidance through<br>the storm.</h2>
+<p class="lede">Most learning platforms are digital filing cabinets — they store, track, and file. Saint Elms Fire puts learning back at the masthead, built with the <b>learner</b> as the primary user. Every learner is different; this is the core idea the whole system is designed around.</p>
+<div class="statline"><div class="stat">
+  <div class="big">3</div>
+  <div class="small">Focus areas: Friend, Philosopher, Guide</div>
+</div><div class="stat">
+  <div class="big">Day 1</div>
+  <div class="small">Your second brain starts building</div>
+</div><div class="stat">
+  <div class="big">∞</div>
+  <div class="small">Multimodal AI at the learner’s service</div>
+</div></div>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">St. Elmo’s fire · the blue-white corona at the masthead</span>
+    <div class="nav" aria-label="Slide 1 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">1 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide cards2" data-context="Why we built it" data-layout="cards2" role="listitem" aria-label="Slide 2">
+  <div class="stage">
+<p class="eyebrow">The diagnosis</p>
+<h2>Most LMSs are designed for Management.<br>Learning deserves its own architect.</h2>
+<div class="grid2"><div class="card">
+  <div class="k">The incumbent</div>
+  <h3>Designed for administrators</h3>
+  <p>Proctored rows, attendance matrices, gradebooks, RBAC, course assignment. The learner is a passive row in someone else’s dashboard. Content is warehoused, not taught.</p>
+</div><div class="card">
+  <div class="k">The correction</div>
+  <h3>Designed for the learner</h3>
+  <p>Elms inverts the hierarchy. The primary user is the student; every management feature falls out of serving them. The interface speaks the mariner’s tongue — a chart, a compass, a beacon — not a spreadsheet.</p>
+</div></div>
+<div class="note">Every learner is different.<br>Temperament, pace, modality, prior knowledge — the system starts there.</div>
+<div class="statline"></div>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">The learner is the primary user</span>
+    <div class="nav" aria-label="Slide 2 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">2 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide cards3" data-context="Three vital features" data-layout="cards3" role="listitem" aria-label="Slide 3">
+  <div class="stage">
+<p class="eyebrow">The vision</p>
+<h2>What good is AI if it cannot take on<br>100× the work a human can?</h2>
+<div class="grid3"><div class="card">
+  <div class="k">01 · The Second Brain</div>
+  <h3>A personal Karpathy-style wiki</h3>
+  <p>Built from Day 1 and grown day-over-day to match and support each learner to the end of their course.</p>
+</div><div class="card">
+  <div class="k">02 · Multimodal AI</div>
+  <h3>Notes that fit the temperament</h3>
+  <p>Custom course notes generated per learner — PDF, podcast, and whatever format meets them where they are.</p>
+</div><div class="card">
+  <div class="k">03 · The Socratic Trident</div>
+  <h3>Three chatbots, three focused domains</h3>
+  <p>Friend, Philosopher, Guide — 24/7 companions that answer, challenge, and push the learner further than one generalist bot can.</p>
+</div></div>
+<p class="lede_after">These are not features bolted on. They are the load-bearing design decisions that follow from taking the learner seriously.</p>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">AI that takes on 100× the work</span>
+    <div class="nav" aria-label="Slide 3 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">3 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide figure2" data-context="Feature 01 · The Second Brain" data-layout="figure2" role="listitem" aria-label="Slide 4">
+  <div class="stage">
+<p class="eyebrow">01 · A living constellation</p>
+<h2>From Day 1, Elms builds you<br>a second brain.</h2>
+<div class="figure2-stage">
+  <div class="figure-wrap"><svg viewBox="0 0 420 260" style="width:100%;max-width:460px;height:auto">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#3E5EC0" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#3E5EC0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="420" height="260" fill="none"/>
+  <circle cx="210" cy="130" r="90" fill="url(#glow)"/>
+  <circle cx="210" cy="130" r="7" fill="#3E5EC0"/>
+  <circle cx="210" cy="130" r="12" fill="none" stroke="#3E5EC0" stroke-width=".7" opacity=".5"/>
+  <g fill="none" stroke="#9EB3E6" stroke-width=".6" opacity=".7">
+    <circle cx="210" cy="130" r="36"/>
+    <circle cx="210" cy="130" r="66"/>
+    <circle cx="210" cy="130" r="102" stroke-dasharray="3 4"/>
+  </g>
+  <g fill="#4A68C8">
+    <circle cx="246" cy="130" r="3.4"/><circle cx="235" cy="104" r="2.6"/>
+    <circle cx="190" cy="112" r="2.4"/><circle cx="186" cy="150" r="3"/>
+    <circle cx="238" cy="152" r="2.2"/>
+  </g>
+  <g fill="#3452AE">
+    <circle cx="276" cy="130" r="3.8"/><circle cx="258" cy="92" r="3"/>
+    <circle cx="162" cy="105" r="3.2"/><circle cx="168" cy="166" r="2.8"/>
+    <circle cx="262" cy="163" r="3.4"/><circle cx="232" cy="80" r="2.6"/>
+    <circle cx="180" cy="86" r="2.4"/>
+  </g>
+  <g fill="#2A4190">
+    <circle cx="312" cy="130" r="4"/><circle cx="272" cy="58" r="3"/>
+    <circle cx="138" cy="88" r="3.4"/><circle cx="142" cy="184" r="3"/>
+    <circle cx="294" cy="170" r="2.8"/><circle cx="240" cy="50" r="2.4"/>
+  </g>
+  <circle cx="272" cy="58" r="6.2" fill="none" stroke="#3E5EC0" stroke-width=".8" stroke-dasharray="2 2.5" opacity=".85"/>
+  <circle cx="138" cy="88" r="6" fill="none" stroke="#3E5EC0" stroke-width=".8" stroke-dasharray="2 2.5" opacity=".85"/>
+  <g stroke="#4A68C8" stroke-width=".4" opacity=".45">
+    <line x1="246" y1="130" x2="258" y2="92"/>
+    <line x1="210" y1="130" x2="162" y2="105"/>
+    <line x1="276" y1="130" x2="272" y2="58"/>
+    <line x1="186" y1="150" x2="168" y2="166"/>
+    <line x1="262" y1="163" x2="294" y2="170"/>
+    <line x1="190" y1="112" x2="162" y2="105"/>
+    <line x1="238" y1="152" x2="262" y2="163"/>
+  </g>
+  <text x="210" y="244" font-family="Menlo,monospace" font-size="9" fill="#39588F" text-anchor="middle" letter-spacing=".14em">YEAR 1 · YEAR 2 · YEAR 3 · PEER-SHARED</text>
+</svg>
+</div>
+  <div>
+    <p class="lede">A Karpathy-style wiki in the shape of a personal knowledge graph. Every concept you touch becomes a star in your constellation & it adds up quiet, daily, from first lesson to last.</p>
+    <div class="statline"><div class="stat">
+  <div class="big">36</div>
+  <div class="small">stars, Year 1<br>(Ananya’s growth)</div>
+</div><div class="stat">
+  <div class="big">236</div>
+  <div class="small">stars, Year 3<br>(Chetna’s constellation)</div>
+</div></div>
+    <p class="lede2">The student watches their own mind light up. Peers who engaged the same concept appear as dashed rings — learning as a shared, visible sky.</p>
+  </div>
+</div>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">A second brain, made visible</span>
+    <div class="nav" aria-label="Slide 4 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">4 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide cards3" data-context="Feature 02 · Multimodal Notes" data-layout="cards3" role="listitem" aria-label="Slide 5">
+  <div class="stage">
+<p class="eyebrow">02 · AI at the learner’s service</p>
+<h2>Every learner, a different temperament.<br>Every learner, notes in their own mode.</h2>
+<div class="grid3"><div class="card">
+  <div class="k">PDF Study Notes</div>
+  <h3>For the visual reader</h3>
+  <p>Structured, lecture-accurate notes rendered from your released courseware. Clean Tufte-aware layout, plotted for re-reading.</p>
+</div><div class="card">
+  <div class="k">Generated Podcasts</div>
+  <h3>For the auditory learner</h3>
+  <p>Scripted by AI, voiced to audio, grounded in the same courseware as the PDF. Listen on the bus, before the exam, on repeat.</p>
+</div><div class="card">
+  <div class="k">Customised to You</div>
+  <h3>For the way you think</h3>
+  <p>Slower or faster, analogy-first or definition-first, math-heavy or narrative — the notes adapt to your temperament, not the other way round.</p>
+</div></div>
+<p class="lede_after">This is multimodal AI doing real work — not one-size-fits-all chat transcripts, but a course that renders itself into the shape each learner needs.</p>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">Multi-modal AI, in service of one learner</span>
+    <div class="nav" aria-label="Slide 5 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">5 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide cards3" data-context="Feature 03 · The Socratic Trident" data-layout="cards3" role="listitem" aria-label="Slide 6">
+  <div class="stage">
+<p class="eyebrow">03 · Three domains, not one generalist</p>
+<h2>One chatbot can only do an average job.<br>We give you three — each with a domain.</h2>
+<div class="grid3"><div class="card">
+  <div class="k">◦ Socrates my Friend</div>
+  <h3>Course operations</h3>
+  <p>Fees, calendars, deadlines, university offices, policies — the business of study, kept warm and precise.</p>
+</div><div class="card">
+  <div class="k">◦ Socrates my Philosopher</div>
+  <h3>Ideas & the wider world</h3>
+  <p>Connects released concepts beyond the syllabus — every claim marked [course] or [web], every answer a new trailhead.</p>
+</div><div class="card">
+  <div class="k">◦ Socrates my Guide</div>
+  <h3>Courseware, directly</h3>
+  <p>Answers strictly from your unlocked lessons. RAG-grounded, provenance-tagged, hallucination-resistant.</p>
+</div></div>
+<p class="lede_after">24/7, all three. Each with a focused domain — together far more capable than a single generalist agent, because the boundaries between course ops, ideas, and courseware are real and worth honouring.</p>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">Friend · Philosopher · Guide</span>
+    <div class="nav" aria-label="Slide 6 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">6 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide cards2" data-context="How it’s built" data-layout="cards2" role="listitem" aria-label="Slide 7">
+  <div class="stage">
+<p class="eyebrow">Production-grade, end-to-end</p>
+<h2>Simple architecture. Real engineering.<br>No demo tricks.</h2>
+<div class="grid2"><div class="card">
+  <div class="k">The pipeline</div>
+  <h3>Courseware → Second Brain → Artifacts</h3>
+  <p>Real B.Sc courseware (Christ University, Bangalore) is chunked, embedded, and grounded in Firestore vector search. GenKit orchestrates four production flows: <b>guide-chat</b>, <b>socratic-tutor</b>, <b>multi-format</b>, <b>ingestion</b>. Gemini 3.7 Flash is the primary LLM with a Sarvam fallback. Cloud Run hosts the service; Secret Manager locks the keys.</p>
+</div><div class="card">
+  <div class="k">The hardening</div>
+  <h3>What separates product from prototype</h3>
+  <p>Generation-aware circuit breaker, idempotent retries with deterministic document IDs, structured error classification, 250 tests passing, accessibility (WCAG) built in from Phase 9, RAG validated at scale after a real retrieval failure at 219+ lessons.</p>
+</div></div>
+<div class="statline"><div class="stat">
+  <div class="big">Next 14</div>
+  <div class="small">the stack · Bun + TypeScript + Tailwind</div>
+</div><div class="stat">
+  <div class="big">GCP</div>
+  <div class="small">Cloud Run · Firestore · GCS · Vertex AI</div>
+</div><div class="stat">
+  <div class="big">250</div>
+  <div class="small">tests green · routing · retrieval · retries</div>
+</div></div>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">Underpinned by real engineering discipline</span>
+    <div class="nav" aria-label="Slide 7 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">7 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+<section class="slide closer" data-context="The invitation" data-layout="closer" role="listitem" aria-label="Slide 8">
+  <div class="stage">
+<p class="eyebrow">The vision, stated plainly</p>
+<h2>Every learner is different.<br>The system should be, too.</h2>
+<p class="lede">St. Elmo’s fire appears at the masthead when sailors have weathered the worst of the storm — a quiet blue light that says the way is navigable. Saint Elms Fire is the same signal for the learner. A second brain growing for you. Notes in the shape you think in. A Friend, a Philosopher, and a Guide beside you, day and night.</p>
+<p class="lede2">This is learner-first education, built deliberately — and in the open. Code and courseware at <b>github.com/thecont1/saint-elms-fire</b>.</p>
+  </div>
+  <div class="stage-foot">
+    <span class="foot-text">Saint Elms Fire · Guidance through the storm</span>
+    <div class="nav" aria-label="Slide 8 navigation">
+      <button class="prev" aria-label="Previous slide" type="button">&#8249;</button>
+      <span class="count">8 / 8</span>
+      <button class="next" aria-label="Next slide" type="button">&#8250;</button>
+    </div>
+  </div>
+</section>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      const track = document.getElementById('track');
+      const brand = document.getElementById('brand');
+      const context = document.getElementById('context-label');
+      const total = 8;
+      let current = 1;
+
+      function setCounter() {
+        document.querySelectorAll('.count').forEach(function(el) {
+          el.textContent = current + ' / ' + total;
+        });
+        document.querySelectorAll('.nav button.prev').forEach(function(b) { b.disabled = current === 1; });
+        document.querySelectorAll('.nav button.next').forEach(function(b) { b.disabled = current === total; });
+      }
+
+      function updateHeader() {
+        const active = track.children[current - 1];
+        if (active && active.dataset.context) context.textContent = active.dataset.context;
+      }
+
+      function go(n, push) {
+        if (n < 1 || n > total) return;
+        current = n;
+        track.style.transform = 'translateX(' + (-(current - 1) * 100) + 'vw)';
+        updateHeader();
+        setCounter();
+        if (push !== false && history.replaceState) {
+          history.replaceState(null, '', '#/' + current);
+        }
+      }
+
+      function hashSlide() {
+        const m = location.hash.match(/^#\/(\d+)$/);
+        return m ? parseInt(m[1], 10) : 1;
+      }
+
+      document.querySelectorAll('.nav button.prev').forEach(function(b) { b.addEventListener('click', function() { go(current - 1); }); });
+      document.querySelectorAll('.nav button.next').forEach(function(b) { b.addEventListener('click', function() { go(current + 1); }); });
+
+      brand.addEventListener('click', function(e) {
+        e.preventDefault();
+        go(1);
+      });
+
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') go(current - 1);
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          go(current + 1);
+        }
+      });
+
+      window.addEventListener('hashchange', function() { go(hashSlide(), false); });
+
+      go(hashSlide(), false);
+    })();
+  </script>
+</body>
+</html>
