@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HelmChart screenshot harness.
+"""HelmsMate screenshot harness.
 
 Captures each slide of the built index.html to the shots/ directory.
 
@@ -23,7 +23,7 @@ SHOTS_DIR = REPO / "shots"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="HelmChart screenshot harness")
+    parser = argparse.ArgumentParser(description="HelmsMate screenshot harness")
     parser.add_argument("--html", type=Path, default=DEFAULT_HTML)
     parser.add_argument("--width", type=int, default=1440)
     parser.add_argument("--height", type=int, default=900)

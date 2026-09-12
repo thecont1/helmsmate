@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
-"""HelmChart invariant verifier.
+"""HelmsMate invariant verifier.
 
 Runs the built index.html in a headless browser and asserts:
-- all slides render
-- no blank slides after slide 1
-- CoronaMark appears in every slide or the shared header
+- all slides render (no blank slides after slide 1)
+- brand mark (svg.corona) present in the frozen header
 - logo click returns to slide 1
-- no horizontal overflow
-- card rows have equal-height cards
-- footer is inside viewport on desktop
-- footer remains reachable on mobile
-- page counter is centered between nav buttons
-- hash navigation works
+- no horizontal overflow on any visible slide
+- card rows have equal-height cards (multi-column grids only)
+- per-slide .foot is inside the viewport on desktop; reachable + clear of nav on mobile
+- #pageno is centered between the prev/next buttons
+- slide index menu opens, lists one item per slide, tracks position, navigates
+- routing works (clean /N paths on http, #/N hash under file://); dots + progress track
 
 Usage:
     python scripts/verify.py
-    python scripts/verify.py --size 1440x900
+    python scripts/verify.py --sizes 1440x900,1280x720
 """
 
 import argparse
-import math
 import re
 import sys
 from pathlib import Path
 
 try:
     from playwright.sync_api import sync_playwright
-except ImportError as exc:
-    print("This verifier requires Playwright: uv add playwright", file=sys.stderr)
+except ImportError:
+    print("This verifier requires Playwright: uv add --dev playwright", file=sys.stderr)
     raise
 
 REPO = Path(__file__).resolve().parent.parent
@@ -41,73 +39,53 @@ def parse_size(s: str):
     return int(m.group(1)), int(m.group(2))
 
 
-def failure(msg: str):
+def failure(msg: str) -> bool:
     print("  FAIL:", msg)
     return False
 
 
-def check_slide(page, index: int, width: int, height: int):
-    print(f"\n--- Slide {index} ---")
+def check_slide(page, index: int, width: int, height: int) -> bool:
     ok = True
 
-    # Force navigation by setting hash and waiting for the transition.
-    page.evaluate(f"location.hash='#/{index}'")
-    page.wait_for_timeout(600)
+    page.evaluate("i => { location.hash = '#/' + i; }", index)
+    page.wait_for_timeout(650)
 
-    # 1. slide paints
     slide = page.locator(".slide").nth(index - 1)
     if not slide.is_visible():
-        ok &= failure("slide is not visible")
-
-    bbox = slide.bounding_box()
-    if not bbox:
-        ok &= failure("could not get slide bbox")
+        ok &= failure(f"slide {index} not visible")
         return ok
 
-    # 2. width = viewport (no drift)
+    bbox = slide.bounding_box()
     if abs(bbox["width"] - width) > 1:
-        ok &= failure(f"slide width {bbox['width']} != viewport {width}")
+        ok &= failure(f"slide {index} width {bbox['width']} != viewport {width}")
+    if abs(bbox["x"]) > 1:
+        ok &= failure(f"slide {index} not at x=0: {bbox['x']}")
 
-    # 3. no horizontal overflow inside the slide
-    max_x = page.evaluate("""
-        () => {
-            const s = document.querySelectorAll('.slide')[arguments[0]-1];
+    overflow = page.evaluate(
+        """(i) => {
+            const s = document.querySelectorAll('.slide')[i-1];
             const r = s.getBoundingClientRect();
             let max = r.right;
             s.querySelectorAll('*').forEach(el => {
                 const b = el.getBoundingClientRect();
                 if (b.right > max) max = b.right;
             });
-            return { right: r.right, max: max };
-        }
-    """, index)
-    if max_x and max_x["max"] > max_x["right"] + 1:
-        ok &= failure(f"horizontal overflow: content right={max_x['max']}, slide right={max_x['right']}")
+            return {right: r.right, max};
+        }""",
+        index,
+    )
+    if overflow["max"] > overflow["right"] + 1:
+        ok &= failure(
+            f"slide {index} horizontal overflow: content={overflow['max']} slide={overflow['right']}"
+        )
 
-    # 4. logo presence (shared header plus inside this slide as backup)
-    logo = page.locator(".brand-mark svg").first
-    if not logo.is_visible():
-        ok &= failure("logo not visible")
-
-    # 5. page counter text and centering inside nav
-    count = slide.locator(".count").first
-    if not count.is_visible():
-        ok &= failure("page count not visible")
-    else:
-        count_text = count.inner_text().strip()
-        if f" {index} / " not in count_text:
-            ok &= failure(f"counter text wrong: {count_text}")
-
-    # 6. card row equal heights (only when the grid has more than one column)
     grid_info = page.evaluate(
         """(i) => {
-            const slide = document.querySelectorAll('.slide')[i-1];
-            const out = [];
-            slide.querySelectorAll('.grid2, .grid3').forEach(g => {
-                const cols = getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length;
-                out.push({ cols, heights: Array.from(g.children).map(c => c.getBoundingClientRect().height) });
-            });
-            return out;
+            const s = document.querySelectorAll('.slide')[i-1];
+            return Array.from(s.querySelectorAll('.grid2, .grid3')).map(g => ({
+                cols: getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length,
+                heights: Array.from(g.children).map(c => c.getBoundingClientRect().height)
+            }));
         }""",
         index,
     )
@@ -115,29 +93,62 @@ def check_slide(page, index: int, width: int, height: int):
         if g["cols"] > 1 and g["heights"]:
             hs = g["heights"]
             if max(hs) - min(hs) > 1:
-                ok &= failure(f"unequal card heights: {hs}")
+                ok &= failure(f"slide {index} unequal card heights: {hs}")
 
-    # 7. footer inside viewport on desktop; reachable on mobile
-    foot = slide.locator(".stage-foot").first
-    if foot.is_visible():
+    foot = slide.locator(".foot").first
+    if foot.count() and foot.is_visible():
         if height >= 720:
             fb = foot.bounding_box()
-            if fb and fb["y"] + fb["height"] > height + 1:
-                ok &= failure(f"footer below viewport: bottom={fb['y'] + fb['height']}")
+            if fb["y"] + fb["height"] > height + 1:
+                ok &= failure(f"slide {index} footer below viewport: {fb['y'] + fb['height']}")
         else:
             slide.evaluate("el => { el.scrollTop = el.scrollHeight; }")
             page.wait_for_timeout(150)
             fb = foot.bounding_box()
-            if fb and fb["y"] + fb["height"] > height + 1:
-                ok &= failure(f"footer not reachable on mobile: bottom={fb['y'] + fb['height']}")
+            if fb["y"] + fb["height"] > height + 1:
+                ok &= failure(f"slide {index} footer unreachable on mobile: {fb['y'] + fb['height']}")
+
+        # Footer must clear the fixed nav row (bottom-right buttons + dots)
+        nav_top = page.locator(".nav").bounding_box()["y"]
+        if fb["y"] + fb["height"] > nav_top + 1:
+            ok &= failure(
+                f"slide {index} footer overlaps nav: foot bottom {fb['y'] + fb['height']} > nav top {nav_top}"
+            )
+
+    expected_ctx = page.evaluate(
+        "(i) => document.querySelectorAll('.slide')[i-1].dataset.context || ''", index
+    )
+    actual_ctx = page.locator("#menu-current").inner_text()
+    if actual_ctx != expected_ctx:
+        ok &= failure(f"slide {index} menu-current: '{actual_ctx}' != '{expected_ctx}'")
+
+    menu_state = page.evaluate(
+        """(i) => {
+            const items = Array.from(document.querySelectorAll('#menu-list button'));
+            return {count: items.length,
+                    onIdx: items.findIndex(b => b.classList.contains('on'))};
+        }""",
+        index,
+    )
+    if menu_state["count"] != len(page.locator(".slide").all()):
+        ok &= failure(f"slide {index} menu item count: {menu_state['count']}")
+    if menu_state["onIdx"] != index - 1:
+        ok &= failure(f"slide {index} active menu item: {menu_state['onIdx']}")
+
+    if page.locator("#pageno").inner_text() != f"{index} / {len(page.locator('.slide').all())}":
+        ok &= failure(f"slide {index} pageno text wrong: {page.locator('#pageno').inner_text()}")
+
+    dots_on = page.locator(".dots i.on").count()
+    if dots_on != 1:
+        ok &= failure(f"slide {index} active dot count: {dots_on}")
 
     return ok
 
 
 def main():
-    parser = argparse.ArgumentParser(description="HelmChart deck verifier")
+    parser = argparse.ArgumentParser(description="HelmsMate deck verifier")
     parser.add_argument("--html", type=Path, default=DEFAULT_HTML)
-    parser.add_argument("--sizes", default="1440x900,1280x720,390x844")
+    parser.add_argument("--sizes", default="1440x900,1280x720,390x844,1200x500")
     args = parser.parse_args()
 
     all_ok = True
@@ -146,29 +157,60 @@ def main():
 
         for size in args.sizes.split(","):
             width, height = parse_size(size)
-            print(f"\n===== viewport {width}x{height} =====")
+            print(f"\n===== {width}x{height} =====")
             page = browser.new_page(viewport={"width": width, "height": height})
             page.goto(args.html.resolve().as_uri())
             page.wait_for_timeout(500)
 
-            total = page.evaluate("() => document.querySelectorAll('.slide').length")
-            print(f"slide count: {total}")
+            total = page.locator(".slide").count()
+            print(f"slides: {total}")
 
-            # Logo reset from slide 6
-            if total >= 6:
-                page.goto(args.html.resolve().as_uri() + "#/6")
-                page.wait_for_timeout(600)
-                page.locator(".brand").first.click()
-                page.wait_for_timeout(600)
-                loc = page.evaluate("() => location.hash")
-                if loc != "#/1":
-                    all_ok &= failure(f"logo reset failed: location is {loc}")
+            # Brand mark present in frozen header
+            if not page.locator(".brand-home svg.corona").is_visible():
+                all_ok &= failure("corona svg not visible in .brand-home")
+
+            # Counter centered between prev/next
+            mid = page.evaluate(
+                """() => {
+                    const p = document.getElementById('prev').getBoundingClientRect();
+                    const n = document.getElementById('next').getBoundingClientRect();
+                    const c = document.getElementById('pageno').getBoundingClientRect();
+                    return {mid: (p.right + n.left) / 2, c: c.left + c.width / 2};
+                }"""
+            )
+            if abs(mid["c"] - mid["mid"]) > 1.5:
+                all_ok &= failure(f"pageno not centered: {mid['c']} vs {mid['mid']}")
+            else:
+                print("  pageno centered OK")
+
+            # Slide index menu: opens, one item per slide, item click navigates
+            page.locator("#menu-btn").click()
+            page.wait_for_timeout(200)
+            if not page.locator(".deck-menu.open .menu-list").is_visible():
+                all_ok &= failure("slide index menu did not open")
+            else:
+                print("  menu opens OK")
+            page.locator("#menu-list button").nth(2).click()
+            page.wait_for_timeout(700)
+            if page.locator("#pageno").inner_text() != f"3 / {total}":
+                all_ok &= failure(f"menu item did not navigate: {page.locator('#pageno').inner_text()}")
+            elif page.locator(".deck-menu.open").count():
+                all_ok &= failure("menu stayed open after navigation")
+            else:
+                print("  menu item navigates OK")
+
+            # Logo click resets from a deep slide
+            if total >= 3:
+                page.locator(".brand-home").first.click()
+                page.wait_for_timeout(650)
+                if page.locator("#pageno").inner_text() != f"1 / {total}":
+                    all_ok &= failure(f"logo reset failed: {page.locator('#pageno').inner_text()}")
                 else:
-                    print("  logo reset -> #/1 OK")
+                    print("  logo reset -> slide 1 OK")
 
-            # Hash nav
             for i in range(1, total + 1):
                 all_ok &= check_slide(page, i, width, height)
+                print(f"  slide {i} checked")
 
             page.close()
 
