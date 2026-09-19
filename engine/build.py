@@ -45,9 +45,25 @@ def esc(text: str) -> str:
     return html.escape(str(text or ""), quote=False)
 
 
+# Brand names that should always render in the deck's coder-mono font.
+# Auto-wraps each occurrence in <code> so the rest of the inline styling
+# (bold, italic) can still nest freely.
+_BRAND_NAMES = re.compile(r"\b(robby|troid)\b", flags=re.IGNORECASE)
+
+
+def _wrap_brand_names(html_text: str) -> str:
+    return _BRAND_NAMES.sub(r"<code>\1</code>", html_text)
+
+
 def bold(text: str) -> str:
-    """Escape, then promote **x** to <b>."""
-    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc(text))
+    """Escape, promote **x** to <b>, *x* to <em>, `x` to <code>, then auto-wrap brand names."""
+    escaped = esc(text)
+    escaped = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped)
+    # Italics: process after bold so **x** is already consumed.
+    escaped = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", escaped)
+    # Inline code: backticks. Single backtick runs; non-greedy.
+    escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
+    return _wrap_brand_names(escaped)
 
 
 def br(text: str) -> str:
@@ -56,7 +72,7 @@ def br(text: str) -> str:
 
 
 def prose(text: str) -> str:
-    """Folded text: collapse newlines, escape, then bold-ify."""
+    """Folded text: collapse newlines, escape, then inline-style."""
     return bold(" ".join((text or "").split()))
 
 
@@ -65,28 +81,60 @@ def attr(text: str) -> str:
 
 
 def css_vars_from_theme(theme: dict) -> str:
-    """Flatten theme YAML into CSS custom properties.
+    """Flatten theme YAML into CSS custom properties for one or two colour modes.
 
     Mapping:  colors.beacon.50 → --beacon-50,  fonts.display → --font-display,
               effects.grid_glow → --grid-glow.  The `name` key is metadata only.
-    """
-    lines = []
 
-    def walk(path, node):
-        if isinstance(node, dict):
-            for k, v in node.items():
-                walk(path + [k], v)
+    If the theme has a top-level `dark` key, those values are emitted inside a
+    `@media (prefers-color-scheme: dark) { :root { ... } }` block. Otherwise
+    the function emits only the light (top-level) block and stays backwards
+    compatible with single-mode themes.
+    """
+    light_theme = {k: v for k, v in theme.items() if k not in ("name", "dark")}
+    light_lines = [f"  --{name}: {val};" for name, val in _flat_vars(light_theme)]
+
+    out = "\n".join(light_lines)
+
+    if "dark" in theme:
+        dark_lines = [f"    --{name}: {val};" for name, val in _flat_vars(theme["dark"])]
+        out += "\n\n@media (prefers-color-scheme: dark) {\n  :root {\n"
+        out += "\n".join(dark_lines)
+        out += "\n  }\n}"
+        # Manual override: the static deck/demo pages expose a theme toggle that
+        # adds `data-theme="dark"` to <html>. Mirror the prefers-color-scheme
+        # block here so the toggle works regardless of OS preference.
+        out += "\n\n:root[data-theme=\"dark\"] {\n"
+        out += "\n".join(dark_lines)
+        out += "\n}"
+
+    return out
+
+
+def _flat_vars(node, base_path=None):
+    """Walk a theme sub-tree; return list of (var_name, value) tuples.
+
+    `colors` and `effects` are dropped from the CSS-var path (so
+    `colors.beacon.50` becomes `--beacon-50`, not `--colors-beacon-50`).
+    `fonts.display` becomes `--font-display`. Underscores in keys are
+    normalised to dashes (so `grid_glow` → `--grid-glow`).
+    """
+    if base_path is None:
+        base_path = []
+    out = []
+    for k, v in node.items():
+        if base_path == [] and k == "name":
+            continue
+        path = base_path + [k]
+        if isinstance(v, dict):
+            out.extend(_flat_vars(v, path))
         else:
-            if path == ["name"]:
-                return
             parts = [p for p in path if p not in ("colors", "effects")]
             if parts and parts[0] == "fonts":
                 parts[0] = "font"
             var = "-".join(str(p) for p in parts).replace("_", "-")
-            lines.append(f"  --{var}: {node};")
-
-    walk([], theme)
-    return "\n".join(lines)
+            out.append((var, v))
+    return out
 
 
 def inline_svg(path: Path) -> str:
@@ -132,7 +180,7 @@ def slide_html(slide: dict, index: int, total: int, foot_default: str) -> str:
     figure = slide.get("figure", "")
     cards = slide.get("cards", [])
     stats = slide.get("stats", [])
-    foot = esc(slide.get("foot", foot_default))
+    foot = bold(slide.get("foot", foot_default))
     gmt = grid_mt_attr(slide)
 
     body = ""
@@ -172,6 +220,9 @@ def slide_html(slide: dict, index: int, total: int, foot_default: str) -> str:
 
     elif layout == "figure2":
         stats_html = "".join(stat_html(s) for s in stats)
+        # lede2 is rendered with line breaks preserved (br) so structured
+        # lists — e.g. enumerations of compiler stages — read clearly.
+        lede2 = br(slide.get("lede2", ""))
         lede2_html = f'\n        <p class="lede lede2">\n          {lede2}\n        </p>' if lede2 else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
     <h2>{title}</h2>
@@ -199,6 +250,21 @@ def slide_html(slide: dict, index: int, total: int, foot_default: str) -> str:
       {lede}
     </p>{lede2_html}"""
 
+    elif layout == "demo":
+        # Centered hero layout — for the /demo/ video page.
+        # `figure` carries the <video> element; `figure_poster` (optional) is the poster image.
+        lede2_html = f'\n    <p class="lede lede-followup">\n      {lede2}\n    </p>' if lede2 else ""
+        body = f"""<p class="eyebrow">{eyebrow}</p>
+    <h2>
+      {title}
+    </h2>
+    <div class="demo-frame">
+      {figure}
+    </div>
+    <p class="lede lede-flush demo-lede">
+      {lede}
+    </p>{lede2_html}"""
+
     else:
         raise ValueError(f"Unknown layout: {layout}")
 
@@ -212,7 +278,7 @@ def slide_html(slide: dict, index: int, total: int, foot_default: str) -> str:
 </section>"""
 
 
-def build(deck_path: Path) -> Path:
+def build(deck_path: Path, out: Path | None = None) -> Path:
     deck = load_yaml(deck_path)
     theme_name = deck.get("theme", "mariners-chart")
     theme = load_yaml(THEMES_DIR / f"{theme_name}.theme.yaml")
@@ -221,6 +287,12 @@ def build(deck_path: Path) -> Path:
     logo_path = REPO / brand.get("mark", "")
     logo_svg = inline_svg(logo_path)
     favicon = svg_to_data_uri(logo_svg)
+
+    # Site chrome icons — match the React app's `feature-control.icon-control`
+    # chrome so deck/demo feel identical. Inlined as raw SVG so the static
+    # pages don't depend on `/icons/*` being served by the Worker.
+    thin_glasses = inline_svg(REPO / "assets" / "icons" / "thin-sunglasses.svg")
+    regular_glasses = inline_svg(REPO / "assets" / "icons" / "regular-sunglasses.svg")
 
     brand_word = bold(brand.get("word", ""))
     brand_alt = brand.get("alt", "Brand mark")
@@ -243,27 +315,32 @@ def build(deck_path: Path) -> Path:
     output = output.replace("{{LOGO_SVG}}", logo_svg)
     output = output.replace("{{BRAND_WORD}}", brand_word)
     output = output.replace("{{BRAND_ALT}}", brand_alt)
+    output = output.replace("{{ICON_THIN_GLASSES}}", thin_glasses)
+    output = output.replace("{{ICON_REGULAR_GLASSES}}", regular_glasses)
     output = output.replace("{{SLIDE_COUNT}}", str(total))
     output = output.replace("{{SLIDES}}", slides_html)
 
     DIST_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(DIST_FILE, "w", encoding="utf-8") as f:
+    target = out or DIST_FILE
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "w", encoding="utf-8") as f:
         f.write(output)
 
-    print(f"Built {DIST_FILE} ({len(output):,} bytes) from {deck_path.name}")
-    return DIST_FILE
+    print(f"Built {target} ({len(output):,} bytes) from {deck_path.name}")
+    return target
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="HelmsMate deck builder")
     parser.add_argument("deck", nargs="?", default=str(REPO / "deck.example.yaml"), help="Path to deck YAML")
+    parser.add_argument("--out", "-o", default=None, help="Output HTML path (default: <repo>/dist/index.html)")
     args = parser.parse_args()
 
     deck_path = Path(args.deck)
     if not deck_path.is_absolute():
         deck_path = REPO / deck_path
 
-    build(deck_path)
+    build(deck_path, out=Path(args.out) if args.out else None)
 
 
 if __name__ == "__main__":
