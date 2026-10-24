@@ -1,0 +1,90 @@
+# Robby Trace — archive paper / charcoal / vermilion, matches the robby site.
+# Light = contact-sheet archaeology on cream paper. Dark = charcoal trace panel,
+# black field, same vermilion registration mark. Respects prefers-color-scheme.
+#
+# Token scale note:
+#   beacon.50–200  = ink wash / faint accents (low-opacity charcoal in light,
+#                    low-opacity paper in dark)
+#   beacon.300–500 = vermilion register (light → Registration Vermilion)
+#   beacon.600–900 = pressed / deeper vermilion for emphasis text
+#   marine.600–950 = the foreground/heading scale (charcoal in light,
+#                    cream in dark)
+name: Robby Trace
+
+# ──────────────────────────────────────────────────────────────────────────
+# Light mode — warm archive paper, charcoal ink, Registration Vermilion.
+# ──────────────────────────────────────────────────────────────────────────
+colors:
+  paper:  "#f4efe1"    # card / panel surface (same hue as the page so cards
+                       # read as ink-on-paper, not as floating panels)
+  chart:  "#f4efe1"    # page background — flat archive paper
+  beacon:
+    50:  "rgba(28,26,25,.05)"   # faint ink wash — hover bg
+    100: "rgba(28,26,25,.22)"   # faint border — menu-list, card border
+    200: "rgba(28,26,25,.40)"   # medium ink — dot inactive, divider emphasis
+    300: "#dc6851"              # light vermilion (rarely used)
+    400: "#ec5340"              # hover vermilion for filled controls
+    500: "#e3442f"              # Registration Vermilion — primary accent
+    600: "#c93424"              # darker vermilion (active / hover state)
+    700: "#a8291b"              # emphasis text on cream — eyebrow, key labels
+    800: "#7c3024"
+    900: "#5c2017"
+  marine:
+    600: "#5b564e"              # tertiary text — footnotes, stat.small
+    700: "#39342e"              # secondary text — captions, lede
+    800: "#2c2a28"
+    900: "#1c1a19"              # primary text — charcoal ink, headings
+    950: "#0a0a0a"
+  rule: "#1c1a19"               # the header rule line — full-strength ink
+
+fonts:
+  display: '"Source Serif 4",Georgia,"Times New Roman",serif'
+  sans:    '"Space Grotesk",ui-sans-serif,system-ui,-apple-system,Helvetica,Arial,sans-serif'
+  mono:    '"JetBrains Mono",ui-monospace,"DM Mono",Menlo,Monaco,Consolas,monospace'
+
+effects:
+  grid_glow:   "rgba(227,68,47,.06)"          # subtle vermilion wash behind deck
+  grid_line_x: "rgba(0,0,0,0)"                # kill the blue grid — flat paper
+  grid_line_y: "rgba(0,0,0,0)"
+  grid_size:   "56px"
+  card_shadow: "7px 8px 0 rgba(28,26,25,.14)" # robby's hard offset shadow
+  nav_shadow:  "0 1px 3px rgba(28,26,25,.18)"
+  card_radius: "0px"                          # sharp editorial corners
+  card_border: "1px solid rgba(28,26,25,.22)" # faded ink border
+
+# ──────────────────────────────────────────────────────────────────────────
+# Dark mode — deep black field, cream ink, vermilion as the registration mark.
+# Borders invert to vermilion (matches robby's dark trace-panel border).
+# ──────────────────────────────────────────────────────────────────────────
+dark:
+  colors:
+    paper:  "#0e0e0e"      # slightly lifted off pure black for card layering
+    chart:  "#000"
+    beacon:
+      50:  "rgba(244,239,225,.05)"   # faint paper wash — hover bg
+      100: "rgba(227,68,47,.45)"     # vermilion-tinted border — menu-list
+      200: "rgba(244,239,225,.22)"   # paper-faint — dot inactive, divider
+      300: "#dc6851"
+      400: "#ec5340"
+      500: "#e3442f"                 # Registration Vermilion — same
+      600: "#ec5340"                 # hover for filled controls
+      700: "#e3442f"                 # emphasis text — eyebrow, key labels
+      800: "#a8291b"
+      900: "#7c3024"
+    marine:
+      600: "#958d80"                 # tertiary — muted
+      700: "#d6cdbc"                 # secondary — warm grey-cream
+      800: "#e8dfd0"
+      900: "#f4efe1"                 # primary — archive cream
+      950: "#f7efe0"
+    rule: "#e3442f"                  # the header rule line — vermilion
+
+  effects:
+    grid_glow:   "rgba(227,68,47,.12)"
+    grid_line_x: "rgba(0,0,0,0)"
+    grid_line_y: "rgba(0,0,0,0)"
+    grid_size:   "56px"
+    card_shadow: "7px 8px 0 rgba(227,68,47,.22)"
+    nav_shadow:  "0 1px 3px rgba(227,68,47,.32)"
+    card_radius: "0px"
+    card_border: "1px solid rgba(227,68,47,.45)"

@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{DECK_TITLE}}</title>
 <link rel="icon" href="{{FAVICON}}">
+<!--HELMSMATE:WEBFONTS:START-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--HELMSMATE:WEBFONTS:END-->
 <style>
 /* ── HelmsMate · theme tokens injected by build.py ─── */
 :root{
-  color-scheme: light;
+  color-scheme: light dark;
   /*{{THEME_VARS}}*/
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -53,6 +58,8 @@ body.menu-open .deck{z-index:12}
 .brand{
   display:flex;align-items:center;gap:14px;flex:none;
   cursor:pointer;
+  justify-content:flex-end;
+  width:100%;
 }
 .brand a{
   display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;
@@ -60,11 +67,109 @@ body.menu-open .deck{z-index:12}
 .brand a:focus-visible{outline:2px solid var(--beacon-600);border-radius:6px;outline-offset:4px}
 .brand svg.corona{width:44px;height:44px;flex:none}
 .brand-word{
-  font-family:var(--font-display);
-  font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+  font-family:var(--font-mono);
+  font-size:14px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--marine-900);
+  font-weight:500;
 }
 .brand-word b{font-weight:700}
+/* ── Site chrome shared with the React app ─────────────────────── */
+/* Top header bar that sits above the deck-head — brand lockup on the
+ * left, theme toggle + site hamburger on the right. Same chrome the
+ * user sees on the React app so deck/demo feel like part of one site. */
+.site-bar{
+  position:fixed;top:0;left:0;right:0;z-index:14;
+  display:flex;align-items:center;gap:16px;
+  height:54px;padding:0 24px;
+  border-bottom:1px solid var(--rule,rgba(28,26,25,.38));
+  background:var(--paper);
+  font-family:var(--font-mono);
+}
+.site-bar-home{
+  display:flex;align-items:center;gap:10px;color:var(--marine-900);
+  text-decoration:none;font-size:13px;font-weight:700;letter-spacing:-.04em;
+}
+.site-bar-home img,.site-bar-home svg{height:28px;width:28px}
+.site-bar-word{display:flex;align-items:baseline;gap:6px}
+.site-bar-word .amp{color:var(--beacon-500);font-weight:500}
+.site-bar-word .slash{color:var(--beacon-500)}
+.site-bar-word .suffix{color:var(--beacon-500);font-size:10px;letter-spacing:.03em}
+.site-bar-spacer{flex:1}
+.site-bar-btn{
+  display:flex;align-items:center;justify-content:center;
+  height:34px;min-width:34px;padding:7px;
+  background:transparent;border:1px solid var(--rule,rgba(28,26,25,.4));
+  color:var(--marine-900);cursor:pointer;font:inherit;
+  transition:background-color .16s cubic-bezier(.23,1,.32,1),color .16s cubic-bezier(.23,1,.32,1);
+}
+.site-bar-btn:hover,.site-bar-btn[aria-pressed="true"]{
+  background:var(--beacon-500);border-color:var(--beacon-500);color:var(--paper);
+}
+.site-bar-btn svg{display:block;width:17px;height:17px}
+.site-bar-btn .icon-dark{display:none}
+:root[data-theme="dark"] .site-bar-btn .icon-light{display:none}
+:root[data-theme="dark"] .site-bar-btn .icon-dark{display:block}
+/* Inlined SVG icons (sunglasses + hamburger + nav) — match the React app's
+ * exact dark-icon / invert-on-hover behaviour so the chrome is identical. */
+.site-bar-btn .icon-wrap{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;line-height:0}
+.site-bar-btn .icon-wrap svg{display:block;width:17px;height:17px}
+.site-bar-btn .icon-wrap svg path{fill:currentColor}
+.site-bar-btn .icon-wrap svg line{stroke:currentColor}
+/* in dark mode the SVG is baseline-inverted so it reads bright by default */
+:root[data-theme="dark"] .site-bar-btn .icon-wrap svg path,
+:root[data-theme="dark"] .site-bar-btn .icon-wrap svg line{filter:invert(1)}
+/* hover/pressed = charcoal background (matches React); the invert flips the
+   icon (whichever way it was) to white so it pops on the charcoal fill */
+.site-bar-btn:hover,.site-bar-btn[aria-pressed="true"]{
+  background:#1c1a19;border-color:var(--beacon-500);color:#f4efe1;
+}
+.site-bar-btn:hover .icon-wrap svg path,
+.site-bar-btn:hover .icon-wrap svg line,
+.site-bar-btn[aria-pressed="true"] .icon-wrap svg path,
+.site-bar-btn[aria-pressed="true"] .icon-wrap svg line{filter:invert(1)}
+/* site nav overlay — full-height drop sheet */
+/* Closed: visibility:hidden, not the hidden attribute. .site-nav sets
+   display:flex, and a class selector outranks the UA's [hidden] rule — so
+   the attribute never hid anything and the links stayed focusable.
+   The visibility change is delayed by the transition length, so the sheet
+   still slides out before it disappears. */
+.site-nav{
+  position:fixed;inset:0;z-index:30;
+  background:var(--paper);color:var(--marine-900);
+  display:flex;flex-direction:column;
+  padding:96px 32px 40px;
+  font-family:var(--font-mono);
+  transform:translateY(-100%);visibility:hidden;
+  transition:transform .3s cubic-bezier(.4,0,.2,1),visibility 0s linear .3s;
+  overflow-y:auto;
+}
+.site-nav.open{
+  transform:translateY(0);visibility:visible;
+  transition:transform .3s cubic-bezier(.4,0,.2,1),visibility 0s;
+}
+.site-nav-close{
+  position:absolute;top:18px;right:18px;
+  height:34px;min-width:34px;padding:7px;
+  background:transparent;border:1px solid var(--rule,rgba(28,26,25,.4));
+  color:var(--marine-900);cursor:pointer;font:inherit;
+}
+.site-nav-close:hover{background:var(--marine-900);color:var(--paper)}
+.site-nav a{
+  display:flex;align-items:center;gap:14px;
+  padding:18px 4px;border-bottom:1px solid var(--beacon-100);
+  color:var(--marine-900);text-decoration:none;
+  font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+}
+.site-nav a:hover{color:var(--beacon-700)}
+.site-nav .nav-icon{width:18px;height:18px;flex:0 0 auto;color:var(--beacon-500)}
+/* the deck-head sits below the site-bar; lift it accordingly */
+.deck-head{top:54px !important}
+/* inline code / brand-name emphasis — coder-monospace for "robby", "troid" etc. */
+code{
+  font-family:var(--font-mono);font-size:.92em;letter-spacing:-.01em;
+  font-weight:500;color:var(--beacon-700);
+}
+.lede code, p code{font-size:.9em}
 .brand-sub{
   font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;
   color:var(--marine-600);text-transform:uppercase;
@@ -81,14 +186,14 @@ body.menu-open .deck{z-index:12}
 .menu-burger{display:none}
 .menu-list{
   position:absolute;top:calc(100% + 10px);right:0;min-width:250px;
-  background:var(--paper);border:1px solid var(--beacon-100);border-radius:12px;
-  box-shadow:0 10px 30px rgba(22,34,63,.14),0 1px 3px rgba(22,34,63,.08);
+  background:var(--paper);border:1px solid var(--beacon-100);border-radius:var(--card-radius,0px);
+  box-shadow:var(--card-shadow,0 10px 30px rgba(22,34,63,.14));
   padding:6px;display:none;z-index:20;
 }
 .deck-menu.open .menu-list{display:block}
 .menu-list button{
   display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
-  padding:9px 12px;border:0;border-radius:8px;background:none;cursor:pointer;
+  padding:9px 12px;border:0;border-radius:var(--card-radius,8px);background:none;cursor:pointer;
   font:inherit;font-size:11px;letter-spacing:.06em;color:var(--marine-700);
 }
 .menu-list button:hover{background:var(--beacon-50);color:var(--marine-900)}
@@ -96,7 +201,7 @@ body.menu-open .deck{z-index:12}
 .menu-list .mi{font-size:9px;color:var(--beacon-400);min-width:14px}
 .menu-list button.on .mi{color:var(--beacon-700)}
 .rule{
-  height:1px;background:var(--beacon-200);margin:18px 0 0;flex:none;
+  height:1px;background:var(--rule,var(--beacon-200));margin:18px 0 0;flex:none;
 }
 .stage{
   flex:1;display:flex;flex-direction:column;justify-content:center;
@@ -108,7 +213,7 @@ body.menu-open .deck{z-index:12}
   text-transform:uppercase;color:var(--beacon-700);margin-bottom:18px;
   display:flex;align-items:center;gap:12px;
 }
-.eyebrow::after{content:"";flex:0 0 56px;height:1px;background:var(--beacon-300)}
+.eyebrow::after{content:"";flex:0 0 56px;height:1px;background:var(--rule,var(--beacon-300))}
 h1,h2{
   font-family:var(--font-display);color:var(--marine-950);
   font-weight:500;letter-spacing:-0.01em;text-wrap:balance;
@@ -132,8 +237,8 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:34px}
 .card{
   background:var(--paper);border:1px solid var(--beacon-100);
-  border-radius:14px;padding:22px 22px 20px;
-  box-shadow:0 1px 2px rgba(22,34,63,.05);
+  border-radius:var(--card-radius,14px);padding:22px 22px 20px;
+  box-shadow:var(--card-shadow,0 1px 2px rgba(22,34,63,.05));
 }
 .card h3{
   font-family:var(--font-display);font-size:19px;color:var(--marine-900);
@@ -147,6 +252,16 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
 .figure{
   display:flex;align-items:center;justify-content:center;
 }
+/* demo layout — centered video hero */
+.demo-frame{
+  width:100%;max-width:1080px;margin:34px auto 0;aspect-ratio:16/9;
+  background:#000;border:1px solid var(--beacon-100);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.demo-frame video{width:100%;height:100%;display:block}
+.demo-frame img{max-width:100%;max-height:100%;display:block}
+.demo-lede{max-width:64ch;margin-left:auto;margin-right:auto;text-align:center}
 /* numbers row */
 .stats{display:flex;gap:44px;margin-top:34px;flex-wrap:wrap}
 .stats-tight{margin-top:26px}
@@ -172,8 +287,8 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
 }
 .nav button{
   width:40px;height:40px;border-radius:50%;border:1px solid var(--beacon-200);
-  background:#fff;color:var(--beacon-700);cursor:pointer;font-size:16px;
-  box-shadow:0 1px 3px rgba(22,34,63,.12);
+  background:var(--paper);color:var(--beacon-700);cursor:pointer;font-size:16px;
+  box-shadow:var(--nav-shadow,0 1px 3px rgba(22,34,63,.12));
 }
 .nav button:hover{background:var(--beacon-50)}
 .progress{
@@ -224,13 +339,39 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
 </style>
 </head>
 <body>
+<!--HELMSMATE:CHROME:START-->
+<!-- site chrome — shared with the React app so deck/demo feel like one site -->
+<header class="site-bar">
+  <a class="site-bar-home" href="{{SITE_HOME_URL}}" aria-label="{{SITE_HOME_LABEL}}">
+    {{LOGO_SVG}}
+    <span class="site-bar-word">{{SITE_WORD}}</span>
+  </a>
+  <div class="site-bar-spacer"></div>
+  <button class="site-bar-btn theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" aria-pressed="false" title="Toggle light/dark">
+    <span class="icon-wrap icon-light">{{ICON_THIN_GLASSES}}</span>
+    <span class="icon-wrap icon-dark">{{ICON_REGULAR_GLASSES}}</span>
+  </button>
+  <button class="site-bar-btn" id="site-nav-toggle" type="button" aria-label="Open site menu" aria-expanded="false" title="Site menu">
+    <span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>
+  </button>
+</header>
+<nav class="site-nav" id="site-nav" aria-label="Site navigation">
+  <button class="site-nav-close" id="site-nav-close" type="button" aria-label="Close menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <a href="https://robby.thecontrarian.in/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home — gallery</a>
+  <a href="https://robby.thecontrarian.in/about"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>About</a>
+  <a href="https://robby.thecontrarian.in/hackathon"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Hackathon brief</a>
+  <a href="https://robby.thecontrarian.in/concept"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/></svg>Image-object concept</a>
+  <a href="https://robby.thecontrarian.in/manual"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Language manual</a>
+  <a href="https://robby.thecontrarian.in/deck/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Presentation deck</a>
+  <a href="https://robby.thecontrarian.in/demo/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Demo video</a>
+  <a href="https://github.com/thecont1/robby" target="_blank" rel="noreferrer"><svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.53.1.72-.23.72-.51v-1.85c-2.94.64-3.56-1.25-3.56-1.25-.48-1.22-1.18-1.55-1.18-1.55-.96-.66.07-.65.07-.65 1.07.08 1.63 1.09 1.63 1.09.94 1.62 2.48 1.15 3.08.88.1-.69.37-1.15.67-1.42-2.35-.27-4.82-1.17-4.82-5.23 0-1.16.42-2.11 1.09-2.85-.11-.27-.47-1.35.1-2.81 0 0 .89-.29 2.89 1.09A9.96 9.96 0 0 1 12 6.6c.9 0 1.8.12 2.64.36 2-1.38 2.88-1.09 2.88-1.09.58 1.46.22 2.54.11 2.81.68.74 1.09 1.69 1.09 2.85 0 4.07-2.48 4.95-4.84 5.21.38.33.72.97.72 1.96v2.79c0 .28.19.61.73.51A10.5 10.5 0 0 0 12 1.5Z"/></svg>View Source</a>
+</nav>
+<!--HELMSMATE:CHROME:END-->
 <main class="deck" id="deck">
 <div class="deck-head">
   <header class="brand">
-    <a href="#/1" class="brand-home" title="Back to opening slide">
-      {{LOGO_SVG}}
-      <div class="brand-word">{{BRAND_WORD}}</div>
-    </a>
     <nav class="deck-menu" id="deck-menu" aria-label="Slide index">
       <button class="menu-btn" id="menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Slide index">
         <span class="menu-current" id="menu-current"></span>
@@ -326,11 +467,6 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   // Click any brand lockup (top-left logo) to reset to the opening slide.
   document.addEventListener('click',function(e){
     if(!e.target.closest||!e.target.closest('#deck-menu'))closeMenu();
-    var a=e.target && e.target.closest ? e.target.closest('.brand-home') : null;
-    if(!a) return;
-    e.preventDefault();
-    go(0);
-    a.blur();
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){closeMenu();return;}
@@ -350,6 +486,41 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   });
   // Prevent iOS Safari / old WebKit from skipping the very first paint.
   requestAnimationFrame(function(){ go(n); });
+})();
+
+// ── Site chrome: theme toggle + site-nav overlay ──────────────
+// Shared with the React app so the deck/demo feel like one site.
+(function(){
+  var html=document.documentElement;
+  var themeBtn=document.getElementById('theme-toggle');
+  var stored=null;
+  try{stored=localStorage.getItem('theme');}catch(e){}
+  var prefers=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var theme=stored==='dark'||stored==='light'?stored:(prefers?'dark':'light');
+  applyTheme(theme);
+  function applyTheme(t){
+    if(t==='dark'){html.setAttribute('data-theme','dark');}
+    else{html.removeAttribute('data-theme');}
+    if(themeBtn){themeBtn.setAttribute('aria-pressed',t==='dark'?'true':'false');themeBtn.setAttribute('aria-label',t==='dark'?'Switch to light mode':'Switch to dark mode');}
+  }
+  if(themeBtn){
+    themeBtn.addEventListener('click',function(){
+      var next=html.getAttribute('data-theme')==='dark'?'light':'dark';
+      applyTheme(next);
+      try{localStorage.setItem('theme',next);}catch(e){}
+    });
+  }
+  // ── Site nav overlay ──
+  var nav=document.getElementById('site-nav');
+  var navToggle=document.getElementById('site-nav-toggle');
+  var navClose=document.getElementById('site-nav-close');
+  // Visibility is CSS's job — see the .site-nav rules.
+  function openNav(){if(!nav)return;nav.classList.add('open');navToggle.setAttribute('aria-expanded','true');}
+  function closeNav(){if(!nav)return;nav.classList.remove('open');navToggle.setAttribute('aria-expanded','false');}
+  if(navToggle){navToggle.addEventListener('click',openNav);}
+  if(navClose){navClose.addEventListener('click',closeNav);}
+  if(nav){nav.addEventListener('click',function(e){if(e.target===nav)closeNav();});}
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&nav&&nav.classList.contains('open'))closeNav();});
 })();
 </script>
 </body>
