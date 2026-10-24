@@ -311,6 +311,7 @@ DEFAULT_SITE_WORD = (
 DEFAULT_SITE_HOME_URL = "https://robby.thecontrarian.in/"
 DEFAULT_SITE_HOME_LABEL = "troid & robby — back to the gallery"
 DEFAULT_CODE_NAMES = ("robby", "troid")
+DEFAULT_MARK = "assets/sef-corona.svg"
 
 
 @dataclass
@@ -422,27 +423,42 @@ def build_html(
 
     roots = _asset_roots(asset_roots)
 
-    # Brand mark → frozen header + favicon.
+    chrome = deck_cfg.get("chrome", True)
+    chrome_cfg = chrome if isinstance(chrome, dict) else {}
+
+    # Brand mark → frozen header + favicon. Optional: a deck with no mark
+    # falls back to the built-in one rather than failing to build.
     mark_rel = brand.get("mark", "")
-    logo_path = paths.resolve_asset(str(mark_rel), *roots)
-    if logo_path is None:
-        raise BuildError(f"brand.mark not found: {mark_rel or '(unset)'}")
+    if mark_rel:
+        logo_path = paths.resolve_asset(str(mark_rel), *roots)
+        if logo_path is None:
+            raise BuildError(f"brand.mark not found: {mark_rel}")
+    else:
+        fallback = paths.resolve_asset(DEFAULT_MARK, *roots)
+        if fallback is None:
+            raise BuildError(f"brand.mark not found and no default mark is available: {DEFAULT_MARK}")
+        logo_path = fallback
     logo_svg = read_svg(logo_path)
     favicon = svg_to_data_uri(logo_svg)
 
     # Site chrome icons — match the React app's chrome so deck/demo feel
     # identical. Inlined so the static pages don't depend on /icons/*.
-    icons: dict[str, str] = {}
-    for key, rel in (
-        ("thin", "assets/icons/thin-sunglasses.svg"),
-        ("regular", "assets/icons/regular-sunglasses.svg"),
-    ):
-        icon_path = paths.resolve_asset(rel, *roots)
-        if icon_path is None:
-            raise BuildError(f"Chrome icon not found: {rel}")
-        icons[key] = read_svg(icon_path)
-    thin_glasses = icons["thin"]
-    regular_glasses = icons["regular"]
+    # Not needed when the chrome is stripped, so do not look for them.
+    if chrome is False:
+        thin_glasses = ""
+        regular_glasses = ""
+    else:
+        icons: dict[str, str] = {}
+        for key, rel in (
+            ("thin", "assets/icons/thin-sunglasses.svg"),
+            ("regular", "assets/icons/regular-sunglasses.svg"),
+        ):
+            icon_path = paths.resolve_asset(rel, *roots)
+            if icon_path is None:
+                raise BuildError(f"Chrome icon not found: {rel}")
+            icons[key] = read_svg(icon_path)
+        thin_glasses = icons["thin"]
+        regular_glasses = icons["regular"]
 
     code_names = brand.get("code_names", list(DEFAULT_CODE_NAMES))
 
@@ -468,15 +484,16 @@ def build_html(
         for i, slide in enumerate(slides)
     )
 
-    chrome = deck_cfg.get("chrome", True)
-    chrome_cfg = chrome if isinstance(chrome, dict) else {}
     if chrome is False:
         template = _strip_block(template, CHROME_START, CHROME_END)
     webfonts = deck_cfg.get("webfonts", True)
     if not webfonts:
         template = _strip_block(template, WEBFONTS_START, WEBFONTS_END)
 
-    site_word = chrome_cfg.get("word") or DEFAULT_SITE_WORD
+    # A supplied wordmark is text, exactly like brand.word: escaped, with
+    # inline markup honoured. The default carries markup and is used as-is.
+    user_word = chrome_cfg.get("word")
+    site_word = bold(user_word, code_names) if user_word else DEFAULT_SITE_WORD
     site_home_url = chrome_cfg.get("home_url") or DEFAULT_SITE_HOME_URL
     site_home_label = chrome_cfg.get("home_label") or DEFAULT_SITE_HOME_LABEL
 

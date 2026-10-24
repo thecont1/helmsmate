@@ -162,3 +162,45 @@ class TestMCP(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMCPProtocol(unittest.TestCase):
+    """Malformed input must be a protocol error, not a crash."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.server = MCPServer(DeckStore(Path(self.tmp.name)))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_params_must_be_an_object(self):
+        for params in ([], "x", 42):
+            response = self.server.handle_message(
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": params}
+            )
+            self.assertEqual(response["error"]["code"], -32602)
+
+    def test_arguments_must_be_an_object(self):
+        response = self.server.handle_message(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "list_themes", "arguments": ["nope"]},
+            }
+        )
+        self.assertEqual(response["error"]["code"], -32602)
+
+    def test_missing_tool_name(self):
+        response = self.server.handle_message(
+            {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {}}
+        )
+        self.assertEqual(response["error"]["code"], -32602)
+
+    def test_notification_with_malformed_params_gets_no_response(self):
+        self.assertIsNone(
+            self.server.handle_message(
+                {"jsonrpc": "2.0", "method": "tools/list", "params": []}
+            )
+        )

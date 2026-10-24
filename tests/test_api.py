@@ -195,3 +195,50 @@ class TestAuth(APITestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestServiceBehaviour(APITestCase):
+    """The service surface: error envelopes, CORS, headers."""
+
+    def test_invalid_deck_id_is_a_client_error_not_a_500(self):
+        status, body = self.call("POST", "/api/decks", {"deck": minimal_deck(), "deck_id": ".."})
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"]["code"], "invalid_deck_id")
+
+    def test_delete_with_a_bad_id_is_a_client_error(self):
+        status, body = self.call("DELETE", "/api/decks/..")
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"]["code"], "invalid_deck_id")
+
+    def test_delete_of_a_missing_deck_is_404(self):
+        status, _ = self.call("DELETE", "/api/decks/nope")
+        self.assertEqual(status, 404)
+
+    def test_cors_is_off_by_default(self):
+        """A local service must not answer '*' to every page in the browser."""
+        req = urllib.request.Request(self.base + "/api/themes")
+        with urllib.request.urlopen(req) as resp:
+            self.assertIsNone(resp.headers.get("Access-Control-Allow-Origin"))
+
+    def test_head_is_supported(self):
+        req = urllib.request.Request(self.base + "/api/themes", method="HEAD")
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+
+    def test_malformed_content_length_is_a_bad_request(self):
+        req = urllib.request.Request(
+            self.base + "/api/decks", data=b"{}", method="POST",
+            headers={"Content-Type": "application/json", "Content-Length": "abc"},
+        )
+        try:
+            urllib.request.urlopen(req)
+            self.fail("expected a 400")
+        except urllib.error.HTTPError as exc:
+            self.assertEqual(exc.code, 400)
+
+    def test_mcp_params_must_be_an_object(self):
+        status, body = self.call(
+            "POST", "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": []}
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(body["error"]["code"], -32602)

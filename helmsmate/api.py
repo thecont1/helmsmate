@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import secrets
 import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -471,12 +472,14 @@ class HelmsMateAPI:
 
     def handle(self, request: Request) -> Response:
         allowed: set[str] = set()
-        for method, pattern, handler in self.routes:
+        # HEAD is GET without a body — the handler drops the payload.
+        method = "GET" if request.method == "HEAD" else request.method
+        for route_method, pattern, handler in self.routes:
             match = pattern.match(request.path)
             if not match:
                 continue
-            if method != request.method:
-                allowed.add(method)
+            if route_method != method:
+                allowed.add(route_method)
                 continue
             request.params = dict(match.groupdict())
             return handler(request)
@@ -577,7 +580,10 @@ class HelmsMateAPI:
 
         payload = request.body_payload()
         deck_id = payload.get("deck_id") if isinstance(payload, dict) else None
-        record = self.store.save(deck, result.html, deck_id=deck_id)
+        try:
+            record = self.store.save(deck, result.html, deck_id=deck_id)
+        except StoreError as exc:
+            raise APIError(400, "invalid_deck_id", str(exc)) from exc
 
         return Response(
             201,
@@ -625,7 +631,11 @@ class HelmsMateAPI:
 
     def delete_deck(self, request: Request) -> Response:
         deck_id = request.params.get("deck_id", "")
-        if not self.store.delete(deck_id):
+        try:
+            deleted = self.store.delete(deck_id)
+        except StoreError as exc:
+            raise APIError(400, "invalid_deck_id", str(exc)) from exc
+        if not deleted:
             raise APIError(404, "not_found", f"No such deck: {deck_id}")
         return Response(200, {"deleted": deck_id})
 
@@ -676,7 +686,12 @@ class HelmsMateAPI:
 # ── HTTP plumbing ──────────────────────────────────────────────────────────
 
 
-def make_handler(api: HelmsMateAPI, token: str | None = None, quiet: bool = False):
+def make_handler(
+    api: HelmsMateAPI,
+    token: str | None = None,
+    quiet: bool = False,
+    allow_origin: str | None = None,
+):
     class Handler(BaseHTTPRequestHandler):
         server_version = "HelmsMate/0.1"
         protocol_version = "HTTP/1.1"
@@ -691,9 +706,14 @@ def make_handler(api: HelmsMateAPI, token: str | None = None, quiet: bool = Fals
             self.send_response(response.status)
             self.send_header("Content-Type", response.content_type)
             self.send_header("Content-Length", str(len(response.raw)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Helmsmate-Token")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+            if allow_origin:
+                self.send_header("Access-Control-Allow-Origin", allow_origin)
+                self.send_header("Vary", "Origin")
+                self.send_header(
+                    "Access-Control-Allow-Headers",
+                    "Authorization, Content-Type, X-Helmsmate-Token",
+                )
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
             for key, value in response.headers.items():
                 self.send_header(key, value)
             self.end_headers()
@@ -704,12 +724,23 @@ def make_handler(api: HelmsMateAPI, token: str | None = None, quiet: bool = Fals
             if not token:
                 return True
             header = self.headers.get("Authorization", "")
-            if header.startswith("Bearer ") and header[7:].strip() == token:
-                return True
-            return self.headers.get("X-Helmsmate-Token", "").strip() == token
+            presented = (
+                header[7:].strip()
+                if header.startswith("Bearer ")
+                else self.headers.get("X-Helmsmate-Token", "").strip()
+            )
+            # Constant-time: a token check that leaks its length or a prefix
+            # is a token check that can be attacked one byte at a time.
+            return secrets.compare_digest(presented, token)
 
         def _read_body(self) -> bytes:
-            length = int(self.headers.get("Content-Length") or 0)
+            raw_length = self.headers.get("Content-Length") or 0
+            try:
+                length = int(raw_length)
+            except (TypeError, ValueError):
+                raise APIError(400, "bad_request", "Content-Length is not a number.")
+            if length < 0:
+                raise APIError(400, "bad_request", "Content-Length is negative.")
             if length > MAX_BODY_BYTES:
                 raise APIError(413, "body_too_large", f"Body exceeds {MAX_BODY_BYTES} bytes.")
             return self.rfile.read(length) if length else b""
@@ -730,13 +761,19 @@ def make_handler(api: HelmsMateAPI, token: str | None = None, quiet: bool = Fals
                 response = api.handle(request)
             except APIError as exc:
                 response = exc.to_response()
-            except Exception as exc:  # noqa: BLE001 — never leak a stack trace to the client
+            except Exception as exc:  # noqa: BLE001 — never leak internals to the client
+                # The detail goes to the server log; the client gets the shape.
+                sys.stderr.write(f"helmsmate: unhandled error: {exc!r}\n")
                 response = Response(
-                    500, {"error": {"code": "internal_error", "message": str(exc)}}
+                    500,
+                    {"error": {"code": "internal_error", "message": "The server hit an unexpected error."}},
                 )
             self._send(response)
 
         def do_GET(self) -> None:  # noqa: N802
+            self._dispatch()
+
+        def do_HEAD(self) -> None:  # noqa: N802
             self._dispatch()
 
         def do_POST(self) -> None:  # noqa: N802
@@ -756,13 +793,14 @@ def serve(
     port: int = 8787,
     workspace: Path | None = None,
     token: str | None = None,
+    allow_origin: str | None = None,
 ) -> None:
     """Run the API server until interrupted."""
     store = DeckStore(workspace)
     display_host = "127.0.0.1" if host in ("0.0.0.0", "::") else host
     base_url = f"http://{display_host}:{port}"
     api = HelmsMateAPI(store, base_url=base_url)
-    httpd = ThreadingHTTPServer((host, port), make_handler(api, token))
+    httpd = ThreadingHTTPServer((host, port), make_handler(api, token, allow_origin=allow_origin))
     print(f"HelmsMate API on {base_url}")
     print(f"  workspace : {store.workspace}")
     print(f"  discovery : {base_url}/openapi.json")
@@ -770,6 +808,10 @@ def serve(
     print(f"  mcp       : {base_url}/mcp")
     if token:
         print("  auth      : bearer token required")
+    if allow_origin:
+        print(f"  cors      : {allow_origin}")
+    else:
+        print("  cors      : off (browser clients need --allow-origin)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -784,12 +826,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8787, help="Port (default 8787)")
     parser.add_argument("--workspace", default=None, help="Where decks are stored")
     parser.add_argument("--token", default=None, help="Require this bearer token")
+    parser.add_argument(
+        "--allow-origin",
+        default=None,
+        help="Send this CORS origin header (default: none — a local service should not answer '*')",
+    )
     args = parser.parse_args(argv)
     serve(
         host=args.host,
         port=args.port,
         workspace=Path(args.workspace) if args.workspace else None,
         token=args.token,
+        allow_origin=args.allow_origin,
     )
     return 0
 

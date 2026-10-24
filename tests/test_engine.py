@@ -102,6 +102,29 @@ class TestEngine(unittest.TestCase):
         self.assertIn("Acme", html)
         self.assertIn("https://example.com", html)
 
+    def test_custom_chrome_word_is_escaped(self):
+        """A supplied wordmark is text, like brand.word — never raw markup."""
+        deck = minimal_deck()
+        deck["deck"]["chrome"] = {"word": "<script>alert(1)</script>"}
+        html = build_html(deck).html
+        self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertIn("&lt;script&gt;", html)
+
+    def test_brand_mark_is_optional(self):
+        """A deck with no mark falls back to the default rather than failing."""
+        deck = minimal_deck()
+        del deck["deck"]["brand"]["mark"]
+        result = build_html(deck)
+        self.assertEqual(result.slides, 3)
+        self.assertIn("svg", result.html)
+
+    def test_chrome_false_needs_no_chrome_assets(self):
+        """Stripping the chrome must not depend on the chrome icons existing."""
+        deck = minimal_deck()
+        deck["deck"]["chrome"] = False
+        html = build_html(deck).html
+        self.assertNotIn('<header class="site-bar"', html)
+
     def test_missing_brand_mark_is_a_clear_error(self):
         deck = minimal_deck()
         deck["deck"]["brand"]["mark"] = "assets/does-not-exist.svg"

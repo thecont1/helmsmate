@@ -159,6 +159,12 @@ problems = validate_deck(deck_dict)     # -> [ValidationIssue(path, message, hin
 python -m helmsmate.api --port 8787
 ```
 
+The server binds to `127.0.0.1` and sends no CORS header, so a page in your
+browser cannot read it by accident. To expose it, add a token
+(`--token`) and, for browser clients, an origin (`--allow-origin`). A deck is
+content — `figure` is raw HTML by design — so treat the API as
+trusted-input-only. See [docs/api.md](docs/api.md#trust-boundary).
+
 | method | path                        | what it does                                    |
 |--------|-----------------------------|-------------------------------------------------|
 | GET    | `/`                         | endpoint index                                   |

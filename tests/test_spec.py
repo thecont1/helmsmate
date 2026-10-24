@@ -64,3 +64,26 @@ class TestSpec(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSchemaMatchesTheEngine(unittest.TestCase):
+    """The schema must describe what the engine actually accepts."""
+
+    def test_every_layout_example_fits_its_own_schema(self):
+        for name, layout in spec.LAYOUTS.items():
+            allowed = set(spec.layout_schema(name)["properties"])
+            for line in layout.example.strip().splitlines():
+                stripped = line.strip()
+                if not stripped or stripped.startswith("-") or ":" not in stripped:
+                    continue
+                key = stripped.split(":")[0]
+                if key and key not in ("cards", "stats", "note"):
+                    self.assertIn(key, allowed, f"{name} example uses '{key}' but its schema forbids it")
+
+    def test_deck_schema_documents_the_options_the_engine_honours(self):
+        deck_props = spec.deck_json_schema()["properties"]["deck"]["properties"]
+        for key in ("title", "brand", "footer", "chrome", "webfonts"):
+            self.assertIn(key, deck_props)
+        brand_props = deck_props["brand"]["properties"]
+        for key in ("mark", "word", "alt", "code_names"):
+            self.assertIn(key, brand_props)

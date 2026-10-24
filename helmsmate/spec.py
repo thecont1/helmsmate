@@ -195,6 +195,17 @@ _F_CARDS = _f(
     max_items=8,
     example='[{k: "The incumbent", h: "Built for admins", p: "Proctored rows…"}]',
 )
+_F_LEDE2 = _f(
+    "lede2",
+    LINES,
+    "Second lead block. Newlines are preserved, so it reads as a list — "
+    "enumerations of stages, for instance.",
+)
+_F_LEDE_AFTER = _f(
+    "lede_after",
+    RICHTEXT,
+    "Paragraph rendered after the card grid.",
+)
 _F_FIGURE = _f(
     "figure",
     HTML,
@@ -252,6 +263,7 @@ LAYOUTS: dict[str, Layout] = {
             _F_CARDS,
             _F_NOTE,
             _F_STATS,
+            _F_LEDE_AFTER,
             _F_FOOT,
             _F_CONTEXT,
             _F_GRID_MT,
@@ -279,6 +291,7 @@ LAYOUTS: dict[str, Layout] = {
             _F_CARDS,
             _F_NOTE,
             _F_STATS,
+            _F_LEDE_AFTER,
             _F_FOOT,
             _F_CONTEXT,
             _F_GRID_MT,
@@ -307,6 +320,7 @@ LAYOUTS: dict[str, Layout] = {
             _F_FIGURE_ASSET,
             _F_LEDE,
             _F_STATS,
+            _F_LEDE2,
             _F_FOOT,
             _F_CONTEXT,
             _F_GRID_MT,
@@ -334,6 +348,7 @@ LAYOUTS: dict[str, Layout] = {
             _F_EYEBROW,
             _F_TITLE,
             _F_LEDE,
+            _F_LEDE2,
             _F_FOOT,
             _F_CONTEXT,
         ),
@@ -358,6 +373,7 @@ LAYOUTS: dict[str, Layout] = {
             _F_FIGURE,
             _F_FIGURE_ASSET,
             _F_LEDE,
+            _F_LEDE2,
             _F_FOOT,
             _F_CONTEXT,
         ),
@@ -381,8 +397,8 @@ COMMON_FIELDS: tuple[Field, ...] = (
 
 # Extra fields the renderer understands but the layouts above do not all list.
 EXTRA_SLIDE_FIELDS: tuple[Field, ...] = (
-    _f("lede2", LINES, "Second lead block. On figure2 it renders as a preserved list."),
-    _f("lede_after", RICHTEXT, "Paragraph rendered after the card grid (cards2, cards3)."),
+    _F_LEDE2,
+    _F_LEDE_AFTER,
 )
 
 DECK_FIELD_DOCS: dict[str, str] = {
@@ -503,14 +519,51 @@ def deck_json_schema() -> dict[str, Any]:
                         "properties": {
                             "mark": {
                                 "type": "string",
-                                "description": "Path to an SVG in the workspace; inlined at build.",
+                                "description": (
+                                    "Path to an SVG in the workspace; inlined at build. "
+                                    "Optional — a deck without one uses the default mark."
+                                ),
                             },
                             "word": {
                                 "type": "string",
                                 "description": "Wordmark. **bold** segments are supported.",
                             },
                             "alt": {"type": "string", "description": "Alt text for the mark."},
+                            "code_names": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": (
+                                    "Words rendered in the mono face wherever they "
+                                    "appear. Defaults to the project's own names."
+                                ),
+                            },
                         },
+                    },
+                    "chrome": {
+                        "description": (
+                            "The site chrome — logo, theme toggle and site links. "
+                            "true keeps it, false removes it for a standalone deck, "
+                            "or give a mapping to brand it."
+                        ),
+                        "oneOf": [
+                            {"type": "boolean"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "word": {"type": "string", "description": "Wordmark in the site bar."},
+                                    "home_url": {"type": "string", "description": "Where the logo links to."},
+                                    "home_label": {"type": "string", "description": "Alt text for the logo."},
+                                },
+                                "additionalProperties": False,
+                            },
+                        ],
+                    },
+                    "webfonts": {
+                        "type": "boolean",
+                        "description": (
+                            "Load the theme's webfonts from a CDN. Set false for a "
+                            "fully offline deck — the system font stacks are used instead."
+                        ),
                     },
                     "footer": {
                         "type": "object",

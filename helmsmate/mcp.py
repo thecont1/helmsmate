@@ -295,13 +295,20 @@ class MCPServer:
         """Handle one JSON-RPC message. Returns None for notifications."""
         method = message.get("method")
         msg_id = message.get("id")
-        params = message.get("params") or {}
+        params = message.get("params")
 
         if method is None:
             return self._error(msg_id, -32600, "Invalid request: no method")
 
         # Notifications carry no id and get no response.
         is_notification = "id" not in message
+
+        if params is None:
+            params = {}
+        elif not isinstance(params, dict):
+            if is_notification:
+                return None
+            return self._error(msg_id, -32602, "'params' must be an object")
 
         if method == "initialize":
             requested = params.get("protocolVersion")
@@ -320,8 +327,16 @@ class MCPServer:
             result = {"tools": self.tool_definitions()}
         elif method == "tools/call":
             name = params.get("name")
-            args = params.get("arguments") or {}
+            args = params.get("arguments")
+            if args is None:
+                args = {}
+            elif not isinstance(args, dict):
+                if is_notification:
+                    return None
+                return self._error(msg_id, -32602, "'arguments' must be an object")
             if not name:
+                if is_notification:
+                    return None
                 return self._error(msg_id, -32602, "tools/call requires a tool name")
             try:
                 payload = self.call_tool(name, args)

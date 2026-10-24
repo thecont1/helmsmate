@@ -207,6 +207,39 @@ Authorization: Bearer <token>
 X-Helmsmate-Token: <token>
 ```
 
+## CORS
+
+Off by default, deliberately. A local service that answers
+`Access-Control-Allow-Origin: *` can be read by any page open in the user's
+browser, so a stray tab could read the decks on the machine. Browser clients
+ask for it explicitly:
+
+```bash
+python -m helmsmate.api --allow-origin https://your.client
+```
+
+## Trust boundary
+
+A deck is content, and the built presentation is that content rendered as
+HTML. Two fields are raw HTML by design:
+
+- `figure` — inline SVG or HTML, passed through untouched.
+- `deck.chrome.word` — the site-bar wordmark, when given a custom value.
+
+Everything else is escaped: `brand.word`, titles, ledes, cards, notes and the
+chrome's `home_url` / `home_label` all go through the same escaping as the
+rest of the text.
+
+The consequence is the one every static site generator has: **a deck can
+carry script, and the built file is served from the API's origin.** Anyone who
+can POST a deck can therefore store script that runs on that origin. Treat
+the API as trusted-input-only:
+
+- bind it to `127.0.0.1` (the default), or put a token in front of it;
+- don't view decks from untrusted authors on an origin that holds anything you
+  care about;
+- serve decks you did not author from a separate origin.
+
 ---
 
 ## MCP

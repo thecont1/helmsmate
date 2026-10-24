@@ -73,7 +73,8 @@ def validate_deck(
 
     theme_name = deck.get("theme", themes.DEFAULT_THEME)
     if not _is_str(theme_name):
-        err("theme", "Theme name must be a string.", f"Try one of: {', '.join(spec.layout_names())}")
+        err("theme", "Theme name must be a string.",
+            f"Try one of: {', '.join(themes.list_theme_names(themes_dir)) or '(none found)'}.")
     else:
         available = known_themes if known_themes is not None else themes.list_theme_names(themes_dir)
         if theme_name not in available:
@@ -114,6 +115,10 @@ def validate_deck(
         for key in ("word", "home_url", "home_label"):
             if key in chrome and not _is_str(chrome[key]):
                 err(f"deck.chrome.{key}", f"chrome.{key} must be a string.", "")
+        for key in chrome:
+            if key not in ("word", "home_url", "home_label"):
+                warn(f"deck.chrome.{key}", f"'{key}' is not a chrome option.",
+                     "The chrome takes 'word', 'home_url' and 'home_label'.")
     elif not isinstance(chrome, bool):
         err("deck.chrome", "'chrome' must be true, false, or a mapping.",
             "false removes the site header and nav for a standalone deck.")
