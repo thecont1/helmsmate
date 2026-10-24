@@ -290,8 +290,15 @@ generated HTML.
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -t .
+python scripts/smoke.py                       # does the service actually work?
+python -m unittest discover -s tests -t .      # the unit and integration suite
 ```
+
+`scripts/smoke.py` is the quick one: it starts the REST API on an ephemeral
+port, drives it the way an LLM would (discovery, build, read back), runs the
+same loop over MCP, and — if Playwright is installed — opens the built deck
+in a browser and checks that it renders. It prints a checklist and exits
+non-zero if anything fails.
 
 140 tests, stdlib only: the contract, the validator's error paths, the renderer
 (including that a list `note:` renders as lines and never as a Python repr),
