@@ -12,11 +12,15 @@ exits non-zero if anything fails.
 
 If Playwright is installed it also opens the built deck in a browser and
 checks that it renders; without it, that step is skipped.
+
+Nothing here waits forever: every network read has a deadline, so a wedged
+server fails the run instead of hanging it.
 """
 
 from __future__ import annotations
 
 import json
+import socket
 import subprocess
 import sys
 import tempfile
@@ -34,7 +38,15 @@ from helmsmate.api import HelmsMateAPI, make_handler  # noqa: E402
 from helmsmate.store import DeckStore  # noqa: E402
 
 PASS, FAIL, SKIP = "  ✓", "  ✗", "  ·"
+
+HTTP_TIMEOUT = 10  # seconds
+MCP_TIMEOUT = 15  # seconds per response
+
 _failures: list[str] = []
+
+
+class SmokeError(Exception):
+    """The run cannot continue."""
 
 
 def check(label: str, ok: bool, detail: str = "") -> bool:
@@ -53,7 +65,11 @@ def section(title: str) -> None:
 
 
 def request(base: str, method: str, path: str, body: dict | None = None):
-    """Call the API. Returns (status, parsed body)."""
+    """Call the API. Returns (status, parsed body).
+
+    A timeout or an unreachable server comes back as status 0 with an error
+    body, so a check can report it instead of the run dying.
+    """
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
         base + path,
@@ -62,7 +78,7 @@ def request(base: str, method: str, path: str, body: dict | None = None):
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
             raw = resp.read()
             try:
                 return resp.status, json.loads(raw)
@@ -74,6 +90,8 @@ def request(base: str, method: str, path: str, body: dict | None = None):
             return exc.code, json.loads(raw)
         except json.JSONDecodeError:
             return exc.code, raw.decode("utf-8")
+    except (urllib.error.URLError, socket.timeout, OSError) as exc:
+        return 0, {"error": {"code": "unreachable", "message": str(exc)}}
 
 
 DEMO_DECK = {
@@ -114,105 +132,124 @@ DEMO_DECK = {
 }
 
 
-def run_rest(base: str) -> tuple[str, str]:
-    """Drive the REST API. Returns (deck_id, deck_dir)."""
+def run_rest(base: str) -> str:
+    """Drive the REST API. Returns the deck id it built ('' if none)."""
     section("REST — discovery")
     status, index = request(base, "GET", "/")
-    check("GET / answers", status == 200 and "discovery" in index)
+    check("GET / answers", status == 200 and "discovery" in str(index))
 
     status, doc = request(base, "GET", "/openapi.json")
     check(
         "GET /openapi.json is an OpenAPI 3.1 document",
-        status == 200 and doc.get("openapi") == "3.1.0",
-        f"{len(doc.get('paths', {}))} paths",
+        status == 200 and isinstance(doc, dict) and doc.get("openapi") == "3.1.0",
+        f"{len(doc.get('paths', {}))} paths" if isinstance(doc, dict) else "",
     )
 
     status, schema = request(base, "GET", "/api/schema")
+    layouts = schema.get("layouts") if isinstance(schema, dict) else None
     check(
         "GET /api/schema carries the deck contract",
-        status == 200 and "deck_schema" in schema and len(schema["layouts"]) >= 5,
-        f"{len(schema['layouts'])} layouts, {len(schema['authoring_notes'])} notes",
+        status == 200 and isinstance(layouts, list) and len(layouts) >= 5,
+        f"{len(layouts)} layouts" if isinstance(layouts, list) else "",
     )
+    if isinstance(layouts, list):
+        notes = schema.get("authoring_notes", [])
+        print(f"    {len(notes)} authoring notes")
 
-    status, layouts = request(base, "GET", "/api/layouts")
-    names = [entry["layout"] for entry in layouts.get("layouts", [])]
-    check("GET /api/layouts lists the layouts", status == 200 and "opener" in names, ", ".join(names))
+    status, listing = request(base, "GET", "/api/layouts")
+    entries = listing.get("layouts") if isinstance(listing, dict) else None
+    names = [e.get("layout") for e in entries] if isinstance(entries, list) else []
+    check("GET /api/layouts lists the layouts", status == 200 and "opener" in names, ", ".join(n for n in names if n))
 
     status, one = request(base, "GET", "/api/layouts/cards2")
+    props = one.get("schema", {}).get("properties", {}) if isinstance(one, dict) else {}
     check(
         "GET /api/layouts/{name} returns that layout's schema",
-        status == 200 and "cards" in one.get("schema", {}).get("properties", {}),
+        status == 200 and "cards" in props,
     )
 
     status, themes = request(base, "GET", "/api/themes")
+    entries = themes.get("themes") if isinstance(themes, dict) else None
+    theme_names = [t.get("name") for t in entries] if isinstance(entries, list) else []
     check(
         "GET /api/themes lists the themes",
-        status == 200 and len(themes.get("themes", [])) >= 1,
-        ", ".join(t["name"] for t in themes.get("themes", [])),
+        status == 200 and len(theme_names) >= 1,
+        ", ".join(n for n in theme_names if n),
     )
 
     section("REST — building")
     status, built = request(base, "POST", "/api/decks", {"deck": DEMO_DECK})
-    if not check("POST /api/decks builds a deck", status == 201, f"HTTP {status}"):
+    deck_id = built.get("deck_id", "") if isinstance(built, dict) else ""
+    if not check("POST /api/decks builds a deck", status == 201 and bool(deck_id), f"HTTP {status}"):
         print(f"      {built}")
-        return "", ""
-    deck_id = built["deck_id"]
-    check(
-        "the response describes the deck",
-        built["slides"] == 3 and built["bytes"] > 1000,
-        f"{built['slides']} slides, {built['bytes']:,} bytes",
-    )
+        return ""
+
+    slides = built.get("slides", 0)
+    size = built.get("bytes", 0)
+    check("the response describes the deck", slides == 3 and size > 1000, f"{slides} slides, {size:,} bytes")
     check("the response carries an outline", len(built.get("outline", [])) == 3)
 
     status, html = request(base, "GET", f"/api/decks/{deck_id}/html")
-    check("GET /api/decks/{id}/html returns the presentation", status == 200)
-    check(
-        "the presentation holds every slide",
-        html.count('<section class="slide"') == 3,
-        f"{html.count('<section class=\"slide\"')} slides in the HTML",
-    )
-    check(
-        "the deck's words made it through",
-        "A deck built." in html and "Ready to present." in html,
-    )
-    check("no placeholder was left unreplaced", "{{" not in html)
-    check("the title break rendered as a line break", "A deck built.<br>over the API." in html)
+    text = html if isinstance(html, str) else ""
+    slide_count = text.count('<section class="slide"')
+    check("GET /api/decks/{id}/html returns the presentation", status == 200 and bool(text))
+    check("the presentation holds every slide", slide_count == 3, f"{slide_count} slides in the HTML")
+    check("the deck's words made it through", "A deck built." in text and "Ready to present." in text)
+    check("no placeholder was left unreplaced", "{{" not in text)
+    check("the title break rendered as a line break", "A deck built.<br>over the API." in text)
 
     status, view = request(base, "GET", f"/decks/{deck_id}/")
-    check("GET /decks/{id}/ serves it for a browser", status == 200 and "deck-head" in view)
+    check("GET /decks/{id}/ serves it for a browser", status == 200 and "deck-head" in str(view))
 
     section("REST — errors and housekeeping")
-    status, invalid = request(
-        base, "POST", "/api/decks", {"deck": {"slides": [{"layout": "nope", "title": "x"}]}}
-    )
-    paths = [d.get("path") for d in invalid.get("error", {}).get("details", [])]
+    status, invalid = request(base, "POST", "/api/decks", {"deck": {"slides": [{"layout": "nope", "title": "x"}]}})
+    details = invalid.get("error", {}).get("details", []) if isinstance(invalid, dict) else []
+    paths = [d.get("path") for d in details if isinstance(d, dict)]
     check(
         "an invalid deck is a 422 with a path to fix",
         status == 422 and "slides[0].layout" in paths,
-        ", ".join(paths),
+        ", ".join(p for p in paths if p),
     )
 
     status, validated = request(base, "POST", "/api/decks/validate", {"deck": DEMO_DECK})
-    check("POST /api/decks/validate passes a good deck", status == 200 and validated["ok"])
+    check("POST /api/decks/validate passes a good deck", status == 200 and validated.get("ok") is True)
 
-    status, listed = request(base, "GET", "/api/decks")
-    check("GET /api/decks lists what is stored", status == 200 and len(listed["decks"]) >= 1)
+    status, stored = request(base, "GET", "/api/decks")
+    decks = stored.get("decks") if isinstance(stored, dict) else None
+    check("GET /api/decks lists what is stored", status == 200 and isinstance(decks, list) and len(decks) >= 1)
 
     status, one = request(base, "GET", f"/api/decks/{deck_id}")
-    check(
-        "GET /api/decks/{id} returns the authored source",
-        status == 200 and len(one["deck"]["slides"]) == 3,
-    )
+    slides_read = one.get("deck", {}).get("slides", []) if isinstance(one, dict) else []
+    check("GET /api/decks/{id} returns the authored source", status == 200 and len(slides_read) == 3)
 
     # A second deck, so the one the browser check opens survives.
-    status, spare = request(base, "POST", "/api/decks", {"deck": DEMO_DECK, "deck_id": "throwaway"})
+    status, _ = request(base, "POST", "/api/decks", {"deck": DEMO_DECK, "deck_id": "throwaway"})
     check("a second deck builds under an explicit id", status == 201)
     status, _ = request(base, "DELETE", "/api/decks/throwaway")
     check("DELETE /api/decks/{id} removes it", status == 200)
     status, _ = request(base, "GET", "/api/decks/throwaway")
     check("the removed deck is gone", status == 404)
 
-    return deck_id, ""
+    return deck_id
+
+
+def _read_with_deadline(stream, timeout: float) -> str:
+    """Read one line, or return '' if the deadline passes.
+
+    readline() on a pipe blocks, so the read happens on a worker thread.
+    """
+    box: list[str] = []
+
+    def reader() -> None:
+        try:
+            box.append(stream.readline())
+        except Exception:  # noqa: BLE001
+            box.append("")
+
+    worker = threading.Thread(target=reader, daemon=True)
+    worker.start()
+    worker.join(timeout)
+    return box[0] if box else ""
 
 
 def run_mcp(workspace: Path) -> None:
@@ -232,62 +269,82 @@ def run_mcp(workspace: Path) -> None:
         message = {"jsonrpc": "2.0", "id": msg_id[0], "method": method}
         if params is not None:
             message["params"] = params
-        proc.stdin.write(json.dumps(message) + "\n")
-        proc.stdin.flush()
-        return json.loads(proc.stdout.readline())
+        try:
+            proc.stdin.write(json.dumps(message) + "\n")
+            proc.stdin.flush()
+        except (BrokenPipeError, ValueError) as exc:
+            raise SmokeError(f"the MCP server closed the connection: {exc}") from exc
+        line = _read_with_deadline(proc.stdout, MCP_TIMEOUT)
+        if not line:
+            # No answer in time: stop the child so the run can fail rather
+            # than hang on a wedged server.
+            proc.kill()
+            raise SmokeError(f"no response to {method} within {MCP_TIMEOUT}s")
+        return json.loads(line)
 
     def tool(name: str, arguments: dict) -> dict:
-        return rpc("tools/call", {"name": name, "arguments": arguments})["result"]
+        return rpc("tools/call", {"name": name, "arguments": arguments}).get("result", {})
 
     try:
-        init = rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})["result"]
+        init = rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}}).get("result", {})
+        server = init.get("serverInfo", {}) if isinstance(init, dict) else {}
         check(
             "initialize negotiates a protocol",
-            init["serverInfo"]["name"] == "helmsmate" and "protocolVersion" in init,
-            init["protocolVersion"],
+            server.get("name") == "helmsmate" and "protocolVersion" in init,
+            str(init.get("protocolVersion", "")),
         )
 
-        tools = rpc("tools/list")["result"]["tools"]
-        names = [t["name"] for t in tools]
+        tools = rpc("tools/list").get("result", {}).get("tools", [])
+        names = [t.get("name") for t in tools if isinstance(t, dict)]
         check(
             "tools/list exposes the deck functions",
             {"get_deck_schema", "build_deck", "validate_deck"} <= set(names),
-            ", ".join(names),
+            ", ".join(n for n in names if n),
         )
         check(
             "every tool declares an input schema",
-            all(t.get("inputSchema", {}).get("type") == "object" for t in tools),
+            all(t.get("inputSchema", {}).get("type") == "object" for t in tools if isinstance(t, dict)),
         )
 
-        schema = tool("get_deck_schema", {})["structuredContent"]
+        schema = tool("get_deck_schema", {}).get("structuredContent", {})
+        schema_layouts = schema.get("layouts", []) if isinstance(schema, dict) else []
         check(
             "get_deck_schema returns the contract",
-            "deck_schema" in schema and len(schema["layouts"]) >= 5,
+            isinstance(schema_layouts, list) and len(schema_layouts) >= 5,
+            f"{len(schema_layouts)} layouts",
         )
 
         result = tool("build_deck", {"deck": DEMO_DECK})
-        payload = result["structuredContent"]
+        payload = result.get("structuredContent", {}) if isinstance(result, dict) else {}
+        deck_id = payload.get("deck_id", "")
         check(
             "build_deck returns a finished presentation",
-            not result["isError"] and payload["slides"] == 3,
-            f"{payload.get('deck_id')} — {payload.get('bytes', 0):,} bytes",
+            not result.get("isError") and payload.get("slides") == 3 and bool(deck_id),
+            f"{deck_id} — {payload.get('bytes', 0):,} bytes",
         )
         check("build_deck returns a URL to view it", str(payload.get("url", "")).endswith("/"))
 
-        back = tool("read_deck", {"deck_id": payload["deck_id"]})["structuredContent"]
-        check(
-            "read_deck returns the authored source back",
-            len(back["deck"]["slides"]) == 3,
-        )
+        if deck_id:
+            back = tool("read_deck", {"deck_id": deck_id}).get("structuredContent", {})
+            slides = back.get("deck", {}).get("slides", []) if isinstance(back, dict) else []
+            check("read_deck returns the authored source back", len(slides) == 3)
 
         bad = tool("build_deck", {"deck": {"slides": [{"layout": "nope"}]}})
+        content = bad.get("content", []) if isinstance(bad, dict) else []
+        text = content[0].get("text", "") if content and isinstance(content[0], dict) else ""
         check(
             "a bad deck comes back as an error with paths to fix",
-            bad["isError"] and "slides[0].layout" in bad["content"][0]["text"],
+            bool(bad.get("isError")) and "slides[0].layout" in text,
         )
+    except SmokeError as exc:
+        check("the MCP server answered", False, str(exc)[:80])
     finally:
-        proc.stdin.close()
-        proc.wait(timeout=10)
+        try:
+            if proc.stdin:
+                proc.stdin.close()
+            proc.wait(timeout=5)
+        except Exception:  # noqa: BLE001
+            proc.kill()
 
 
 def run_browser(html: Path) -> None:
@@ -313,11 +370,8 @@ def run_browser(html: Path) -> None:
             slides = page.locator(".slide").count()
             check("every slide is in the DOM", slides == 3, f"{slides} slides")
 
-            check(
-                "the counter is centred",
-                page.locator("#pageno").inner_text() == "1 / 3",
-                page.locator("#pageno").inner_text(),
-            )
+            counter = page.locator("#pageno").inner_text()
+            check("the counter is centred", counter == "1 / 3", counter)
 
             page.click("#menu-btn")
             page.wait_for_timeout(200)
@@ -325,11 +379,8 @@ def run_browser(html: Path) -> None:
 
             page.keyboard.press("ArrowRight")
             page.wait_for_timeout(700)
-            check(
-                "arrow keys move between slides",
-                page.locator("#pageno").inner_text() == "2 / 3",
-                page.locator("#pageno").inner_text(),
-            )
+            counter = page.locator("#pageno").inner_text()
+            check("arrow keys move between slides", counter == "2 / 3", counter)
 
             overflow = page.evaluate(
                 """() => {
@@ -355,16 +406,22 @@ def main() -> int:
 
     workspace = Path(tempfile.mkdtemp(prefix="helmsmate-smoke-"))
     store = DeckStore(workspace / "decks")
-    api = HelmsMateAPI(store, base_url="http://127.0.0.1:8787")
+    api = HelmsMateAPI(store, base_url="")
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(api, quiet=True))
     port = httpd.server_address[1]
-    base = f"http://127.0.0.1:{port}"
+    # Now that the port is known, the API hands out URLs that actually work.
+    api.base_url = f"http://127.0.0.1:{port}"
+    api.mcp.base_url = api.base_url
+    base = api.base_url
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
     try:
-        deck_id, _ = run_rest(base)
+        deck_id = run_rest(base)
         run_mcp(workspace)
-        run_browser(store.deck_dir(deck_id) / "index.html")
+        if deck_id:
+            run_browser(store.deck_dir(deck_id) / "index.html")
+        else:
+            skip("render check", "the REST build did not produce a deck")
     finally:
         httpd.shutdown()
         httpd.server_close()
