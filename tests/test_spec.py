@@ -5,6 +5,12 @@ from __future__ import annotations
 import json
 import unittest
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO  # noqa: F401  (path bootstrap)
 
 from helmsmate import spec
@@ -62,9 +68,6 @@ class TestSpec(unittest.TestCase):
         self.assertEqual(text["stats"].kind, spec.STATS)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestSchemaMatchesTheEngine(unittest.TestCase):
     """The schema must describe what the engine actually accepts."""
@@ -87,3 +90,7 @@ class TestSchemaMatchesTheEngine(unittest.TestCase):
         brand_props = deck_props["brand"]["properties"]
         for key in ("mark", "word", "alt", "code_names"):
             self.assertIn(key, brand_props)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -816,10 +816,15 @@ def make_handler(
             try:
                 length = int(raw_length)
             except (TypeError, ValueError):
+                # The body cannot be located, so it cannot be drained. Close
+                # the connection rather than leave unread bytes in the socket.
+                self.close_connection = True
                 raise APIError(400, "bad_request", "Content-Length is not a number.")
             if length < 0:
+                self.close_connection = True
                 raise APIError(400, "bad_request", "Content-Length is negative.")
             if length > MAX_BODY_BYTES:
+                self.close_connection = True
                 raise APIError(413, "body_too_large", f"Body exceeds {MAX_BODY_BYTES} bytes.")
             return self.rfile.read(length) if length else b""
 

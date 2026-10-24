@@ -47,7 +47,9 @@ def cmd_build(args: argparse.Namespace) -> int:
             print(f"  {issue}")
         return 1
 
-    out = Path(args.out) if args.out else paths.repo_root() / "dist" / "index.html"
+    # Output lands relative to the working directory, not to wherever the
+    # package happens to be installed.
+    out = Path(args.out) if args.out else Path("dist") / "index.html"
     try:
         result = build_html(deck)
     except BuildError as exc:

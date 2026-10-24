@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import unittest
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO, minimal_deck  # noqa: F401
 
 from helmsmate.validate import ERROR, WARNING, is_valid, validate_deck
@@ -110,3 +116,42 @@ class TestValidate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLayoutFields(unittest.TestCase):
+    """A layout declares the fields it consumes; anything else is ignored."""
+
+    def test_a_field_the_layout_does_not_use_warns(self):
+        deck = minimal_deck(slides=[{"layout": "closer", "title": "T", "cards": [{"h": "x"}]}])
+        issues = validate_deck(deck)
+        warned = [i for i in issues if i.path == "slides[0].cards"]
+        self.assertEqual(len(warned), 1)
+        self.assertEqual(warned[0].severity, WARNING)
+
+    def test_fields_the_layout_declares_do_not_warn(self):
+        deck = minimal_deck(
+            slides=[
+                {
+                    "layout": "figure2",
+                    "title": "T",
+                    "lede": "x",
+                    "lede2": ["a", "b"],
+                    "figure": "<svg></svg>",
+                }
+            ]
+        )
+        warned = [i for i in validate_deck(deck) if i.severity == WARNING]
+        self.assertEqual(warned, [])
+
+
+class TestBrandMarkValidation(unittest.TestCase):
+    def test_a_non_svg_brand_mark_is_an_error(self):
+        deck = minimal_deck()
+        deck["deck"]["brand"]["mark"] = "assets/mark.png"
+        issues = validate_deck(deck)
+        self.assertIn("deck.brand.mark", paths_for(issues))
+        self.assertTrue(any(i.severity == ERROR for i in issues))
+
+    def test_an_svg_brand_mark_is_accepted(self):
+        issues = validate_deck(minimal_deck())
+        self.assertNotIn("deck.brand.mark", paths_for(issues))

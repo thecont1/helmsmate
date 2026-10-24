@@ -99,9 +99,11 @@ def validate_deck(
     if mark is not None and not _is_str(mark):
         err("deck.brand.mark", "Brand mark must be a path to an SVG file.",
             "For example: assets/sef-corona.svg")
-    elif isinstance(mark, str) and not mark.lower().endswith((".svg", ".png", ".jpg", ".jpeg")):
-        warn("deck.brand.mark", f"Brand mark '{mark}' is not a typical image file.",
-             "An SVG is best — it is inlined as markup and inherits theme colours.")
+    elif isinstance(mark, str) and not mark.lower().endswith(".svg"):
+        # The mark is inlined as markup, so a raster would be pasted into the
+        # document as garbage.
+        err("deck.brand.mark", f"Brand mark '{mark}' must be an SVG.",
+            "The mark is inlined as markup. Use 'figure_asset' for a raster image.")
 
     footer = deck_cfg.get("footer", {}) or {}
     if not isinstance(footer, dict):
@@ -224,10 +226,9 @@ def validate_deck(
             warn(f"{p}.figure_asset", "Both 'figure' and 'figure_asset' are set; 'figure' wins.",
                  "Remove one to avoid confusion.")
 
-        # Unknown keys on a slide are usually typos from an LLM.
-        allowed = {"layout"} | {f.name for f in lay.fields} | {
-            "lede2", "lede_after", "note", "figure", "figure_asset", "stats", "cards",
-        }
+        # Unknown keys on a slide are usually typos from an LLM. A layout
+        # declares the fields it consumes; anything else is not rendered.
+        allowed = {"layout"} | {f.name for f in lay.fields}
         for key in slide:
             if key not in allowed:
                 warn(f"{p}.{key}", f"'{key}' is not used by the '{layout}' layout.",

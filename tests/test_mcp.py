@@ -7,6 +7,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO, minimal_deck  # noqa: F401
 
 from helmsmate.mcp import MCPServer
@@ -160,9 +166,6 @@ class TestMCP(unittest.TestCase):
         self.assertEqual(len(payload["decks"]), 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestMCPProtocol(unittest.TestCase):
     """Malformed input must be a protocol error, not a crash."""
@@ -204,3 +207,95 @@ class TestMCPProtocol(unittest.TestCase):
                 {"jsonrpc": "2.0", "method": "tools/list", "params": []}
             )
         )
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class TestMCPEdges(unittest.TestCase):
+    """The edges a bad client can reach."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.server = MCPServer(DeckStore(Path(self.tmp.name)))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_unsupported_jsonrpc_version_is_an_invalid_request(self):
+        """A version other than 2.0 must not raise."""
+        response = self.server.handle_message(
+            {"jsonrpc": "1.0", "id": 1, "method": "tools/list"}
+        )
+        self.assertEqual(response["error"]["code"], -32600)
+
+    def test_missing_jsonrpc_field_is_accepted(self):
+        response = self.server.handle_message({"id": 1, "method": "tools/list"})
+        self.assertIn("tools", response["result"])
+
+    def test_non_string_deck_id_is_a_tool_error(self):
+        response = self.server.handle_message(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "build_deck",
+                    "arguments": {
+                        "deck": {"slides": [{"layout": "closer", "title": "t"}]},
+                        "deck_id": ["not", "a", "string"],
+                    },
+                },
+            }
+        )
+        self.assertTrue(response["result"]["isError"])
+        self.assertIn("deck_id", response["result"]["content"][0]["text"])
+
+    def test_non_string_deck_id_on_read_is_a_tool_error(self):
+        response = self.server.handle_message(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "read_deck", "arguments": {"deck_id": {"a": 1}}},
+            }
+        )
+        self.assertTrue(response["result"]["isError"])
+
+
+class TestMCPStdio(unittest.TestCase):
+    """The stdio transport must survive a bad frame."""
+
+    def _run(self, frames: list[str]) -> list[dict]:
+        import io
+        import sys as _sys
+
+        from helmsmate.mcp import stdio_main
+
+        stdin, stdout = _sys.stdin, _sys.stdout
+        _sys.stdin = io.StringIO("\n".join(frames) + "\n")
+        _sys.stdout = io.StringIO()
+        try:
+            stdio_main([])
+            out = _sys.stdout.getvalue()
+        finally:
+            _sys.stdin, _sys.stdout = stdin, stdout
+        return [json.loads(line) for line in out.splitlines() if line.strip()]
+
+    def test_a_non_object_frame_is_rejected_not_fatal(self):
+        responses = self._run(
+            [
+                "[1, 2, 3]",
+                "not json at all",
+                json.dumps({"jsonrpc": "2.0", "id": 9, "method": "tools/list"}),
+            ]
+        )
+        codes = [r.get("error", {}).get("code") for r in responses]
+        self.assertEqual(codes[0], -32600)
+        self.assertEqual(codes[1], -32700)
+        self.assertIn("tools", responses[2]["result"])
+
+    def test_a_notification_gets_no_frame(self):
+        responses = self._run([json.dumps({"jsonrpc": "2.0", "method": "tools/list"})])
+        self.assertEqual(responses, [])

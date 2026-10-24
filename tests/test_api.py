@@ -10,6 +10,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO, minimal_deck  # noqa: F401
 
 from helmsmate.api import HelmsMateAPI, HelmsMateServer, make_handler
@@ -196,9 +202,6 @@ class TestAuth(APITestCase):
         self.assertEqual(status, 200)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestServiceBehaviour(APITestCase):
     """The service surface: error envelopes, CORS, headers."""
@@ -360,3 +363,7 @@ class TestHeaders(APITestCase):
             csp = resp.headers.get("Content-Security-Policy", "")
         self.assertIn("connect-src 'none'", csp)
         self.assertIn("default-src 'self'", csp)
+
+
+if __name__ == "__main__":
+    unittest.main()

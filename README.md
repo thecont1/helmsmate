@@ -293,9 +293,10 @@ generated HTML.
 python -m unittest discover -s tests -t .
 ```
 
-88 tests, stdlib only: the contract, the validator's error paths, the renderer
+140 tests, stdlib only: the contract, the validator's error paths, the renderer
 (including that a list `note:` renders as lines and never as a Python repr),
-the store, the REST API over a real socket, and the MCP JSON-RPC surface.
+the store, the REST API over a real socket, the MCP JSON-RPC surface, and the
+transport edges a bad client can reach.
 
 ## Roadmap
 

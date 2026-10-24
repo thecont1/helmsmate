@@ -178,11 +178,17 @@ Every error has the same shape:
 
 | status | code                | when                                          |
 |--------|---------------------|-----------------------------------------------|
+| 400    | `invalid_json`      | the body is not valid JSON                     |
+| 400    | `invalid_yaml`      | the body is YAML but does not parse            |
 | 400    | `invalid_deck`      | the body is not a deck                         |
 | 400    | `build_failed`      | the deck is valid but cannot be rendered       |
+| 400    | `invalid_deck_id`   | a deck id was rejected (build or delete)       |
+| 400    | `bad_request`       | a malformed Content-Length header              |
 | 401    | `unauthorized`      | a token is required and missing or wrong       |
 | 404    | `not_found`         | no such route or deck                          |
+| 404    | `unknown_layout`    | no such layout                                 |
 | 405    | `method_not_allowed`| the path exists, the verb does not             |
+| 411    | `length_required`   | a chunked body; send Content-Length            |
 | 413    | `body_too_large`    | over 32 MB                                    |
 | 422    | `invalid_deck`      | the deck has validation errors                 |
 | 500    | `internal_error`    | an unexpected failure                          |
@@ -239,12 +245,14 @@ there. A deck is served with:
 
 - `Content-Security-Policy: default-src 'self' data: blob:; … connect-src
   'none'; frame-src 'none'; form-action 'none'` — the deck renders and
-  navigates, but it cannot fetch, beacon or post anywhere, so stored script
-  cannot read or delete your other decks;
+  navigates, but it cannot open a network connection, so script inside a deck
+  has no channel to fetch or post to the API or anywhere else;
 - `X-Content-Type-Options: nosniff` — on every response.
 
-Neither makes a stored deck safe to view on an origin you care about. Treat
-the API as trusted-input-only:
+That policy removes the deck's outbound network access. It is not a complete
+boundary — the script still runs, and navigation is not a network request —
+so a stored deck is not safe to view on an origin you care about. Treat the
+API as trusted-input-only:
 
 - bind it to `127.0.0.1` (the default), or put a token in front of it;
 - don't view decks from untrusted authors on an origin that holds anything you

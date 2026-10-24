@@ -7,6 +7,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO, example_deck, minimal_deck  # noqa: F401
 
 from helmsmate.engine import BuildError, build_html, site_chrome_warning
@@ -221,3 +227,50 @@ class TestFigureAsset(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBrandMark(unittest.TestCase):
+    """The brand mark is inlined as markup, so it must be an SVG."""
+
+    def test_a_non_svg_brand_mark_is_refused(self):
+        import tempfile
+
+        tmp = tempfile.TemporaryDirectory()
+        root = Path(tmp.name)
+        (root / "assets").mkdir()
+        (root / "assets" / "mark.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+        deck = minimal_deck()
+        deck["deck"]["brand"]["mark"] = "assets/mark.png"
+        with self.assertRaises(BuildError) as ctx:
+            build_html(deck, asset_roots=(root,))
+        self.assertIn("SVG", str(ctx.exception))
+        tmp.cleanup()
+
+    def test_an_svg_brand_mark_is_accepted(self):
+        import tempfile
+
+        tmp = tempfile.TemporaryDirectory()
+        root = Path(tmp.name)
+        (root / "assets").mkdir()
+        (root / "assets" / "mark.svg").write_text(
+            '<svg viewBox="0 0 10 10"><circle r="4"/></svg>', encoding="utf-8"
+        )
+        deck = minimal_deck()
+        deck["deck"]["brand"]["mark"] = "assets/mark.svg"
+        html = build_html(deck, asset_roots=(root,)).html
+        self.assertIn("<circle", html)
+        tmp.cleanup()
+
+
+class TestOutline(unittest.TestCase):
+    """The outline is a plain-text summary of the deck."""
+
+    def test_a_pipe_becomes_a_space_in_the_outline(self):
+        deck = minimal_deck(slides=[{"layout": "closer", "title": "One.|Two."}])
+        result = build_html(deck)
+        self.assertEqual(result.outline[0]["title"], "One. Two.")
+
+    def test_a_list_title_is_flattened(self):
+        deck = minimal_deck(slides=[{"layout": "closer", "title": ["One.", "Two."]}])
+        result = build_html(deck)
+        self.assertEqual(result.outline[0]["title"], "One. Two.")

@@ -64,11 +64,26 @@ def assets_dir() -> Path:
 
 
 def default_workspace() -> Path:
-    """Where built decks are stored. Override with HELMSMATE_WORKSPACE."""
+    """Where built decks are stored. Override with HELMSMATE_WORKSPACE.
+
+    In a checkout this is ``<repo>/decks``. An installed package writes to
+    the user's data directory instead — site-packages is not ours to write
+    into, and may not even be writable.
+    """
     env = os.environ.get("HELMSMATE_WORKSPACE")
     if env:
         return Path(env).expanduser().resolve()
-    return repo_root() / "decks"
+    root = repo_root()
+    if (root / "engine" / "template.html").exists():
+        return root / "decks"
+    return user_data_dir()
+
+
+def user_data_dir() -> Path:
+    """A per-user, writable directory for HelmsMate's data."""
+    env = os.environ.get("XDG_DATA_HOME")
+    base = Path(env).expanduser() if env else Path.home() / ".local" / "share"
+    return base / "helmsmate" / "decks"
 
 
 def resolve_asset(rel: str, *roots: Path) -> Path | None:
@@ -81,17 +96,23 @@ def resolve_asset(rel: str, *roots: Path) -> Path | None:
     rel = (rel or "").strip()
     if not rel:
         return None
-    candidate = Path(rel)
-    if candidate.is_absolute():
+    if Path(rel).is_absolute():
         return None
+    # A root is an asset directory, so 'assets/chart.svg' and 'chart.svg'
+    # should both find the file. Try the path as given, then without the
+    # 'assets/' prefix.
+    variants = [rel]
+    if rel.startswith("assets/"):
+        variants.append(rel[len("assets/") :])
     for root in roots:
         if not root:
             continue
-        target = (root / candidate).resolve()
-        try:
-            target.relative_to(root.resolve())
-        except ValueError:
-            continue  # path escapes this root — try the next one
-        if target.exists():
-            return target
+        for variant in variants:
+            target = (root / variant).resolve()
+            try:
+                target.relative_to(root.resolve())
+            except ValueError:
+                continue  # path escapes this root — try the next one
+            if target.exists():
+                return target
     return None

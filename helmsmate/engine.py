@@ -382,15 +382,17 @@ def site_chrome_warning(deck: dict) -> str | None:
 
 
 def _asset_roots(asset_roots: tuple[Path, ...] | None) -> tuple[Path, ...]:
-    """Search path for assets: the caller's roots first, the repo's built-ins last.
+    """Search path for assets: the caller's roots first, the built-ins last.
 
-    The built-ins (the brand mark, the chrome icons) are always reachable, so
-    a caller adding a workspace does not have to re-declare the repository.
+    Roots are asset directories, never whole repositories — a deck may reach
+    an image, not every file in the tree. The built-ins (the brand mark, the
+    chrome icons) are always reachable, so a caller adding a workspace does
+    not have to re-declare them.
     """
     roots: list[Path] = [Path(r) for r in (asset_roots or ())]
-    repo = paths.repo_root()
-    if repo not in roots:
-        roots.append(repo)
+    builtins = paths.assets_dir()
+    if builtins not in roots:
+        roots.append(builtins)
     return tuple(roots)
 
 
@@ -433,6 +435,13 @@ def build_html(
         logo_path = paths.resolve_asset(str(mark_rel), *roots)
         if logo_path is None:
             raise BuildError(f"brand.mark not found: {mark_rel}")
+        if logo_path.suffix.lower() != ".svg":
+            # The mark is inlined as markup, so anything but an SVG would be
+            # pasted into the document as garbage.
+            raise BuildError(
+                f"brand.mark must be an SVG (got {logo_path.name}). "
+                "Use 'figure_asset' for a raster image."
+            )
     else:
         fallback = paths.resolve_asset(DEFAULT_MARK, *roots)
         if fallback is None:
@@ -521,7 +530,7 @@ def build_html(
                 "index": i,
                 "layout": slide.get("layout", "opener"),
                 "context": slide.get("context", ""),
-                "title": " ".join(str(slide.get("title", "")).split()),
+                "title": " ".join(as_text(slide.get("title", "")).replace("|", " ").split()),
             }
         )
         if not slide.get("context"):

@@ -6,6 +6,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
+# Direct execution (python tests/test_x.py) needs the repo root on the path.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from tests.fixtures import REPO  # noqa: F401
 
 from helmsmate.store import DeckStore, StoreError, make_id, slugify
@@ -90,10 +96,66 @@ class TestStore(unittest.TestCase):
         self.assertEqual(make_id("Title", "salt"), make_id("Title", "salt"))
         self.assertNotEqual(make_id("Title", "a"), make_id("Title", "b"))
 
-    def test_asset_roots_include_the_repository(self):
+    def test_asset_roots_are_asset_directories(self):
+        """Roots are asset directories — a deck may reach an image, not a tree."""
         roots = self.store.asset_roots()
-        self.assertTrue(any((r / "assets" / "sef-corona.svg").exists() for r in roots))
+        self.assertTrue(any((r / "sef-corona.svg").exists() for r in roots))
+        for root in roots:
+            self.assertEqual(root.name, "assets")
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStoreIdentity(unittest.TestCase):
+    """Implicit ids, and writes that never leave a deck half-written."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = DeckStore(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _deck(self, title="Same title", marker="A"):
+        return {
+            "deck": {"title": title},
+            "slides": [{"layout": "closer", "title": marker}],
+        }
+
+    def test_the_same_deck_rebuilds_in_place(self):
+        first = self.store.save(self._deck(), "<html>1</html>")
+        second = self.store.save(self._deck(), "<html>2</html>")
+        self.assertEqual(first.id, second.id)
+        self.assertEqual(len(self.store.list()), 1)
+        self.assertEqual(self.store.read_html(first.id), "<html>2</html>")
+
+    def test_different_decks_with_the_same_title_do_not_collide(self):
+        first = self.store.save(self._deck(marker="A"), "<html>A</html>")
+        second = self.store.save(self._deck(marker="B"), "<html>B</html>")
+        self.assertNotEqual(first.id, second.id)
+        self.assertEqual(len(self.store.list()), 2)
+        self.assertEqual(self.store.read_html(first.id), "<html>A</html>")
+
+    def test_an_explicit_id_still_updates(self):
+        self.store.save(self._deck(), "<html>1</html>", deck_id="fixed")
+        again = self.store.save(self._deck(marker="B"), "<html>2</html>", deck_id="fixed")
+        self.assertEqual(again.id, "fixed")
+        self.assertEqual(len(self.store.list()), 1)
+
+    def test_a_failed_write_leaves_the_stored_deck_unchanged(self):
+        record = self.store.save(self._deck(), "<html>good</html>")
+
+        class Unserialisable:
+            pass
+
+        broken = {"deck": {"title": "Broken"}, "slides": [Unserialisable()]}
+        with self.assertRaises(Exception):
+            self.store.save(broken, "<html>bad</html>", deck_id=record.id)
+
+        # The old deck is intact — no half-written source, no stray staging.
+        self.assertEqual(self.store.read_html(record.id), "<html>good</html>")
+        self.assertEqual(self.store.read_deck(record.id)["slides"][0]["title"], "A")
+        leftovers = [p.name for p in self.store.workspace.iterdir() if p.name.startswith(".")]
+        self.assertEqual(leftovers, [])

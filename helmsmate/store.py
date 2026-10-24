@@ -70,6 +70,17 @@ def make_id(title: str, salt: str = "") -> str:
     return f"{slugify(title)}-{digest}"
 
 
+def content_digest(deck: dict) -> str:
+    """A digest of the deck's content.
+
+    The implicit id is derived from this, so building the same deck twice
+    updates one deck, while two different decks that happen to share a title
+    get their own ids instead of overwriting each other.
+    """
+    canonical = yaml.safe_dump(deck, sort_keys=True, allow_unicode=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
+
+
 class DeckStore:
     """Filesystem-backed deck storage."""
 
@@ -88,9 +99,10 @@ class DeckStore:
 
         Workspace assets win, then the repository's built-in assets (the
         brand mark and chrome icons), so a deck can use the shipped artwork
-        without copying it in.
+        without copying it in. Both roots are asset directories — a deck may
+        reach an image, not every file in the tree.
         """
-        return (self.assets_root, self.workspace, paths.repo_root())
+        return (self.assets_root, paths.assets_dir())
 
     def deck_dir(self, deck_id: str) -> Path:
         """The directory for a deck id — rejecting anything that escapes.
@@ -111,30 +123,27 @@ class DeckStore:
     # ── writes ─────────────────────────────────────────────────────────────
 
     def save(self, deck: dict, html: str, deck_id: str | None = None) -> DeckRecord:
-        """Write the source and the built HTML, returning the record."""
+        """Write the source and the built HTML, returning the record.
+
+        The files are written to a temporary directory and swapped into
+        place, so a failure part-way through leaves the stored deck as it
+        was rather than half-written.
+        """
         title = str((deck.get("deck", {}) or {}).get("title") or "Untitled deck")
         slides = len(deck.get("slides", []) or [])
         theme = str(deck.get("theme") or "")
-        deck_id = deck_id or make_id(title, str(slides))
+        deck_id = deck_id or make_id(title, content_digest(deck))
 
         target = self.deck_dir(deck_id)
-        target.mkdir(parents=True, exist_ok=True)
-
-        source = target / "deck.yaml"
-        built = target / "index.html"
-        meta_path = target / "meta.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
 
         created = _now()
-        if meta_path.exists():
+        existing_meta = target / "meta.json"
+        if existing_meta.exists():
             try:
-                created = json.loads(meta_path.read_text(encoding="utf-8")).get("created_at", created)
+                created = json.loads(existing_meta.read_text(encoding="utf-8")).get("created_at", created)
             except (json.JSONDecodeError, OSError):
                 pass
-
-        with open(source, "w", encoding="utf-8") as f:
-            yaml.safe_dump(deck, f, sort_keys=False, allow_unicode=True, width=100)
-        with open(built, "w", encoding="utf-8") as f:
-            f.write(html)
 
         record = DeckRecord(
             id=deck_id,
@@ -146,8 +155,37 @@ class DeckStore:
             updated_at=_now(),
             path=str(target),
         )
-        meta_path.write_text(json.dumps(record.to_dict(), indent=2), encoding="utf-8")
+
+        staging = target.parent / f".{target.name}.staging"
+        shutil.rmtree(staging, ignore_errors=True)
+        staging.mkdir(parents=True)
+        try:
+            with open(staging / "deck.yaml", "w", encoding="utf-8") as f:
+                yaml.safe_dump(deck, f, sort_keys=False, allow_unicode=True, width=100)
+            with open(staging / "index.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            (staging / "meta.json").write_text(
+                json.dumps(record.to_dict(), indent=2), encoding="utf-8"
+            )
+            self._swap(staging, target)
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
         return record
+
+    @staticmethod
+    def _swap(staging: Path, target: Path) -> None:
+        """Move a staged deck into place, keeping the old one if it fails."""
+        backup = target.parent / f".{target.name}.previous"
+        shutil.rmtree(backup, ignore_errors=True)
+        if target.exists():
+            target.rename(backup)
+        try:
+            staging.rename(target)
+        except OSError:
+            if backup.exists():
+                backup.rename(target)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
 
     # ── reads ──────────────────────────────────────────────────────────────
 

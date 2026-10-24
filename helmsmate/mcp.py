@@ -238,7 +238,12 @@ class MCPServer:
             raise ToolError(str(exc)) from exc
 
         deck_id = args.get("deck_id")
-        record = self.store.save(deck, result.html, deck_id=deck_id)
+        if deck_id is not None and not isinstance(deck_id, str):
+            raise ToolError("'deck_id' must be a string.")
+        try:
+            record = self.store.save(deck, result.html, deck_id=deck_id)
+        except StoreError as exc:
+            raise ToolError(str(exc)) from exc
 
         return {
             "ok": True,
@@ -263,8 +268,8 @@ class MCPServer:
 
     def _tool_read_deck(self, args: dict[str, Any]) -> dict[str, Any]:
         deck_id = args.get("deck_id")
-        if not deck_id:
-            raise ToolError("'deck_id' is required.")
+        if not isinstance(deck_id, str) or not deck_id:
+            raise ToolError("'deck_id' must be a non-empty string.")
         try:
             record = self.store.get(deck_id)
             deck = self.store.read_deck(deck_id)
@@ -301,6 +306,9 @@ class MCPServer:
         msg_id = message.get("id")
         params = message.get("params")
 
+        # Notifications carry no id and get no response.
+        is_notification = "id" not in message
+
         if method is None:
             return self._error(msg_id, -32600, "Invalid request: no method")
 
@@ -309,9 +317,6 @@ class MCPServer:
             if is_notification:
                 return None
             return self._error(msg_id, -32600, f"Unsupported JSON-RPC version: {version!r}")
-
-        # Notifications carry no id and get no response.
-        is_notification = "id" not in message
 
         if params is None:
             params = {}
@@ -404,17 +409,34 @@ def stdio_main(argv: list[str] | None = None) -> int:
         line = line.strip()
         if not line:
             continue
+        response: dict[str, Any] | None = None
         try:
             message = json.loads(line)
         except json.JSONDecodeError:
-            response: dict[str, Any] | None = {
+            response = {
                 "jsonrpc": "2.0",
                 "id": None,
                 "error": {"code": -32700, "message": "Parse error"},
             }
         else:
-            response = server.handle_message(message)
+            if not isinstance(message, dict):
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                }
+            else:
+                try:
+                    response = server.handle_message(message)
+                except Exception as exc:  # noqa: BLE001 — one bad frame must not kill the server
+                    sys.stderr.write(f"helmsmate-mcp: internal error: {exc!r}\n")
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": message.get("id"),
+                        "error": {"code": -32603, "message": "Internal error"},
+                    }
         if response is not None:
+            # stdout carries JSON-RPC frames and nothing else.
             sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             sys.stdout.flush()
     return 0
