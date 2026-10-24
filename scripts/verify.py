@@ -165,9 +165,9 @@ def main():
             total = page.locator(".slide").count()
             print(f"slides: {total}")
 
-            # Brand mark present in frozen header
-            if not page.locator(".brand-home svg.corona").is_visible():
-                all_ok &= failure("corona svg not visible in .brand-home")
+            # Brand mark present in the frozen chrome (the site bar is fixed)
+            if not page.locator(".site-bar-home svg.corona").is_visible():
+                all_ok &= failure("corona svg not visible in .site-bar-home")
 
             # Counter centered between prev/next
             mid = page.evaluate(
@@ -199,14 +199,21 @@ def main():
             else:
                 print("  menu item navigates OK")
 
-            # Logo click resets from a deep slide
+            # Home/End jump to the first and last slide.
+            # (The old "click the logo to reset" check no longer applies: the
+            # mark now lives in the site bar, where it is a link out to the
+            # site rather than a deck control.)
             if total >= 3:
-                page.locator(".brand-home").first.click()
+                page.keyboard.press("End")
+                page.wait_for_timeout(650)
+                if page.locator("#pageno").inner_text() != f"{total} / {total}":
+                    all_ok &= failure(f"End did not reach the last slide: {page.locator('#pageno').inner_text()}")
+                page.keyboard.press("Home")
                 page.wait_for_timeout(650)
                 if page.locator("#pageno").inner_text() != f"1 / {total}":
-                    all_ok &= failure(f"logo reset failed: {page.locator('#pageno').inner_text()}")
+                    all_ok &= failure(f"Home did not return to slide 1: {page.locator('#pageno').inner_text()}")
                 else:
-                    print("  logo reset -> slide 1 OK")
+                    print("  Home/End navigation OK")
 
             for i in range(1, total + 1):
                 all_ok &= check_slide(page, i, width, height)

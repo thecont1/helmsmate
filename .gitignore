@@ -2,6 +2,16 @@ __pycache__/
 *.pyc
 .DS_Store
 .playwright-mcp/
+*.egg-info/
+.venv/
 
 # generated slide captures
 shots/
+
+# API workspace — decks built by the service
+decks/
+
+# local media: large binaries that live on disk but not in git
+/dist/*.mp4
+/assets/gallery/
+/assets/shots/
