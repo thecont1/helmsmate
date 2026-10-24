@@ -184,6 +184,17 @@ class TestFigureAsset(unittest.TestCase):
         with self.assertRaises(BuildError):
             build_html(self._deck("../secrets.svg"), asset_roots=(self.root,))
 
+    def test_absolute_asset_paths_are_refused(self):
+        """A deck must not be able to read arbitrary files off the server."""
+        for field in ("figure_asset", "brand.mark"):
+            deck = self._deck("/etc/passwd")
+            if field == "brand.mark":
+                deck["deck"]["brand"]["mark"] = "/etc/passwd"
+            with self.assertRaises(BuildError) as ctx:
+                build_html(deck, asset_roots=(self.root,))
+            self.assertIn("not found", str(ctx.exception))
+            self.assertIn("/etc/passwd", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

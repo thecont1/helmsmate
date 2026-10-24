@@ -61,6 +61,23 @@ class TestStore(unittest.TestCase):
         self.assertNotIn("/", record.id)
         self.assertNotIn("..", record.id)
 
+    def test_deck_id_cannot_climb_out_of_the_workspace(self):
+        """'..' must never reach the filesystem — delete() would rmtree it."""
+        for bad in ("..", ".", "../..", "a/b", "..hidden", "/etc"):
+            with self.assertRaises(StoreError):
+                self.store.deck_dir(bad)
+
+    def test_delete_refuses_to_climb_out(self):
+        parent = Path(self.tmp.name) / "parent"
+        parent.mkdir()
+        sentinel = parent / "keep.txt"
+        sentinel.write_text("keep me", encoding="utf-8")
+        store = DeckStore(parent / "workspace")
+        store.workspace.mkdir()
+        with self.assertRaises(StoreError):
+            store.delete("..")
+        self.assertTrue(sentinel.exists())
+
     def test_explicit_deck_id_is_honoured(self):
         record = self.store.save(self._deck(), "x", deck_id="my-deck")
         self.assertEqual(record.id, "my-deck")

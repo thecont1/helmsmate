@@ -93,9 +93,20 @@ class DeckStore:
         return (self.assets_root, self.workspace, paths.repo_root())
 
     def deck_dir(self, deck_id: str) -> Path:
-        if not re.fullmatch(r"[A-Za-z0-9._-]{1,80}", deck_id or ""):
+        """The directory for a deck id — rejecting anything that escapes.
+
+        The id must start with an alphanumeric character, which rules out
+        ``.`` and ``..``; and the resolved path must sit inside the
+        workspace, which rules out anything else that might climb out.
+        """
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", deck_id or ""):
             raise StoreError(f"Invalid deck id: {deck_id!r}")
-        return self.workspace / deck_id
+        target = (self.workspace / deck_id).resolve()
+        try:
+            target.relative_to(self.workspace.resolve())
+        except ValueError as exc:
+            raise StoreError(f"Invalid deck id: {deck_id!r}") from exc
+        return target
 
     # ── writes ─────────────────────────────────────────────────────────────
 

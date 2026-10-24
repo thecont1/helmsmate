@@ -74,15 +74,16 @@ def default_workspace() -> Path:
 def resolve_asset(rel: str, *roots: Path) -> Path | None:
     """Resolve an asset path against a list of roots.
 
-    Returns the first path that exists, or None. Paths that escape their root
-    are rejected — a deck must not be able to read arbitrary files.
+    Only relative paths are accepted, and only ones that stay inside a root.
+    A deck must not be able to read arbitrary files off the server — assets
+    live in the workspace, and that is where they come from.
     """
     rel = (rel or "").strip()
     if not rel:
         return None
     candidate = Path(rel)
     if candidate.is_absolute():
-        return candidate if candidate.exists() else None
+        return None
     for root in roots:
         if not root:
             continue
