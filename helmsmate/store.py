@@ -157,9 +157,12 @@ class DeckStore:
             raise StoreError(f"No such deck: {deck_id}")
         try:
             data = json.loads(meta_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, OSError) as exc:
             raise StoreError(f"Corrupt deck metadata: {deck_id}") from exc
-        return DeckRecord(**data)
+        try:
+            return DeckRecord(**data)
+        except TypeError as exc:
+            raise StoreError(f"Corrupt deck metadata: {deck_id}") from exc
 
     def read_deck(self, deck_id: str) -> dict:
         """The authored deck, as a dict — the seam phase-two editing works on."""

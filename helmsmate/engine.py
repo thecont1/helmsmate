@@ -271,7 +271,7 @@ def slide_html(
 
     elif layout == "demo":
         # Centered hero layout — for the /demo/ video page.
-        # `figure` carries the <video> element; `figure_poster` (optional) is the poster image.
+        # `figure` carries the <video> element.
         lede2_html = f'\n    <p class="lede lede-followup">\n      {lede2}\n    </p>' if lede2 else ""
         body = f"""<p class="eyebrow">{eyebrow}</p>
     <h2>

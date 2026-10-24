@@ -74,6 +74,13 @@ def css_vars_from_theme(theme: dict) -> str:
 
 
 def theme_path(name: str, themes_dir: Path | None = None) -> Path:
+    """The file for a theme name.
+
+    A theme name is a name, not a path: it may not contain a separator or
+    climb out of the themes directory.
+    """
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        raise ValueError(f"Invalid theme name: {name!r}")
     root = themes_dir or paths.themes_dir()
     return root / f"{name}{THEME_SUFFIX}"
 
@@ -82,7 +89,10 @@ def load_theme(name: str, themes_dir: Path | None = None) -> dict:
     """Load a theme by name. Raises FileNotFoundError / ValueError."""
     import yaml
 
-    path = theme_path(name, themes_dir)
+    try:
+        path = theme_path(name, themes_dir)
+    except ValueError as exc:
+        raise FileNotFoundError(f"Unknown theme: {name}") from exc
     if not path.exists():
         raise FileNotFoundError(f"Unknown theme: {name}")
     with open(path, "r", encoding="utf-8") as f:

@@ -232,7 +232,18 @@ rest of the text.
 
 The consequence is the one every static site generator has: **a deck can
 carry script, and the built file is served from the API's origin.** Anyone who
-can POST a deck can therefore store script that runs on that origin. Treat
+can POST a deck can therefore store script that runs on that origin.
+
+The server limits the blast radius rather than pretending the problem is not
+there. A deck is served with:
+
+- `Content-Security-Policy: default-src 'self' data: blob:; … connect-src
+  'none'; frame-src 'none'; form-action 'none'` — the deck renders and
+  navigates, but it cannot fetch, beacon or post anywhere, so stored script
+  cannot read or delete your other decks;
+- `X-Content-Type-Options: nosniff` — on every response.
+
+Neither makes a stored deck safe to view on an origin you care about. Treat
 the API as trusted-input-only:
 
 - bind it to `127.0.0.1` (the default), or put a token in front of it;

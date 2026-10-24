@@ -95,29 +95,42 @@ class Request:
             except yaml.YAMLError as exc:
                 raise APIError(400, "invalid_deck", f"Body is neither JSON nor YAML: {exc}")
 
-    def deck_from_body(self) -> dict[str, Any]:
-        """Accept JSON or YAML: {"deck": {...}}, a bare deck object, or YAML text.
+    def deck_and_id_from_body(self) -> tuple[dict[str, Any], str | None]:
+        """The deck in the body, and the deck id to store it under.
 
-        A deck has its own top-level ``deck`` key (the shared settings), so
-        the wrapper is only recognised when the payload does not look like a
-        deck itself — a deck always carries ``slides``.
+        Accepts ``{"deck": {...}, "deck_id": "x"}``, a bare deck object
+        (which may carry its own ``deck_id``), or the YAML text of a deck.
         """
         payload = self.body_payload()
+
+        deck_id: str | None = None
+        deck: Any = payload
 
         if isinstance(payload, dict) and "slides" not in payload:
             inner = payload.get("deck")
             if isinstance(inner, (dict, str)):
-                payload = inner
+                deck = inner
+                if isinstance(payload.get("deck_id"), str):
+                    deck_id = payload["deck_id"]
 
-        if isinstance(payload, str):
+        if isinstance(deck, str):
             try:
-                payload = yaml.safe_load(payload)
+                deck = yaml.safe_load(deck)
             except yaml.YAMLError as exc:
                 raise APIError(400, "invalid_yaml", f"Could not parse deck YAML: {exc}")
 
-        if not isinstance(payload, dict):
+        if not isinstance(deck, dict):
             raise APIError(400, "invalid_deck", "Expected a deck object or {'deck': {...}}.")
-        return payload
+
+        # deck_id addresses the result; it is not part of the deck.
+        if deck_id is None and isinstance(deck.get("deck_id"), str):
+            deck_id = deck["deck_id"]
+        deck = {k: v for k, v in deck.items() if k != "deck_id"}
+        return deck, deck_id
+
+    def deck_from_body(self) -> dict[str, Any]:
+        """The deck in the body."""
+        return self.deck_and_id_from_body()[0]
 
 
 class Response:
@@ -559,7 +572,7 @@ class HelmsMateAPI:
         return Response(200, {"decks": [r.to_dict() for r in self.store.list()]})
 
     def build_deck(self, request: Request) -> Response:
-        deck = request.deck_from_body()
+        deck, deck_id = request.deck_and_id_from_body()
         issues = validate_deck(deck)
         errors = [i.to_dict() for i in issues if i.severity == ERROR]
         warnings = [i.to_dict() for i in issues if i.severity != ERROR]
@@ -572,14 +585,13 @@ class HelmsMateAPI:
                 errors,
             )
 
+        chrome_warning = site_chrome_warning(deck)
         asset_roots = self.store.asset_roots()
         try:
             result = build_html(deck, asset_roots=asset_roots)
         except BuildError as exc:
             raise APIError(400, "build_failed", str(exc)) from exc
 
-        payload = request.body_payload()
-        deck_id = payload.get("deck_id") if isinstance(payload, dict) else None
         try:
             record = self.store.save(deck, result.html, deck_id=deck_id)
         except StoreError as exc:
@@ -598,9 +610,9 @@ class HelmsMateAPI:
                 "source_path": f"{record.path}/deck.yaml",
                 "outline": result.outline,
                 "warnings": warnings,
-                "build_warnings": result.warnings
-                + ([site_chrome_warning(deck)] if site_chrome_warning(deck) else []),
+                "build_warnings": result.warnings + ([chrome_warning] if chrome_warning else []),
             },
+            headers={"Location": f"/api/decks/{record.id}"},
         )
 
     def validate_deck(self, request: Request) -> Response:
@@ -653,7 +665,13 @@ class HelmsMateAPI:
             html = self.store.read_html(deck_id)
         except StoreError as exc:
             raise APIError(404, "not_found", str(exc)) from exc
-        return Response(200, None, content_type="text/html; charset=utf-8", raw=html)
+        return Response(
+            200,
+            None,
+            content_type="text/html; charset=utf-8",
+            raw=html,
+            headers={"Content-Security-Policy": DECK_CSP},
+        )
 
     def view_deck(self, request: Request) -> Response:
         deck_id = request.params.get("deck_id", "")
@@ -661,7 +679,13 @@ class HelmsMateAPI:
             html = self.store.read_html(deck_id)
         except StoreError as exc:
             raise APIError(404, "not_found", str(exc)) from exc
-        return Response(200, None, content_type="text/html; charset=utf-8", raw=html)
+        return Response(
+            200,
+            None,
+            content_type="text/html; charset=utf-8",
+            raw=html,
+            headers={"Content-Security-Policy": DECK_CSP},
+        )
 
     # ── MCP ────────────────────────────────────────────────────────────────
 
@@ -679,11 +703,50 @@ class HelmsMateAPI:
             if response is not None:
                 responses.append(response)
         if not responses:
-            return Response(202, {"status": "accepted"})
+            # MCP: a notification-only request is accepted and answered with
+            # 202 and no body.
+            return Response(202, None)
         return Response(200, responses[0] if isinstance(payload, dict) else responses)
 
 
 # ── HTTP plumbing ──────────────────────────────────────────────────────────
+
+
+# A built deck is content, and the content may carry script. Served from the
+# API's own origin, that script could otherwise call the API itself. The
+# policy keeps the deck self-contained: it renders, but it does not phone
+# home. Inline script and style stay allowed — the deck's own navigation is
+# inline.
+DECK_CSP = (
+    "default-src 'self' data: blob:; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "img-src 'self' data: blob:; "
+    "media-src 'self' data: blob:; "
+    "connect-src 'none'; "
+    "frame-src 'none'; "
+    "form-action 'none'"
+)
+
+
+class HelmsMateServer(ThreadingHTTPServer):
+    """The HTTP server.
+
+    A client that hangs up mid-request is normal, not a server fault — those
+    are dropped rather than printed as a traceback.
+    """
+
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        exc = sys.exc_info()[0]
+        if exc is not None and issubclass(
+            exc, (ConnectionResetError, BrokenPipeError, ConnectionAbortedError)
+        ):
+            return
+        super().handle_error(request, client_address)
 
 
 def make_handler(
@@ -692,6 +755,10 @@ def make_handler(
     quiet: bool = False,
     allow_origin: str | None = None,
 ):
+    if token is not None and not token.strip():
+        # An empty token would silently disable authentication while the
+        # operator believes the service is locked.
+        raise ValueError("token must be a non-empty string")
     class Handler(BaseHTTPRequestHandler):
         server_version = "HelmsMate/0.1"
         protocol_version = "HTTP/1.1"
@@ -706,6 +773,7 @@ def make_handler(
             self.send_response(response.status)
             self.send_header("Content-Type", response.content_type)
             self.send_header("Content-Length", str(len(response.raw)))
+            self.send_header("X-Content-Type-Options", "nosniff")
             if allow_origin:
                 self.send_header("Access-Control-Allow-Origin", allow_origin)
                 self.send_header("Vary", "Origin")
@@ -721,19 +789,29 @@ def make_handler(
                 self.wfile.write(response.raw)
 
         def _authorised(self) -> bool:
-            if not token:
+            if token is None:
                 return True
             header = self.headers.get("Authorization", "")
-            presented = (
-                header[7:].strip()
-                if header.startswith("Bearer ")
-                else self.headers.get("X-Helmsmate-Token", "").strip()
-            )
+            if header[:7].lower() == "bearer ":
+                presented = header[7:].strip()
+            else:
+                presented = self.headers.get("X-Helmsmate-Token", "").strip()
             # Constant-time: a token check that leaks its length or a prefix
             # is a token check that can be attacked one byte at a time.
-            return secrets.compare_digest(presented, token)
+            # Bytes, not str: compare_digest rejects non-ASCII strings.
+            return secrets.compare_digest(presented.encode("utf-8"), token.encode("utf-8"))
 
         def _read_body(self) -> bytes:
+            encoding = (self.headers.get("Transfer-Encoding") or "").lower()
+            if "chunked" in encoding:
+                # We do not decode chunked bodies. Closing the connection is
+                # the only way to keep the stream in sync.
+                self.close_connection = True
+                raise APIError(
+                    411,
+                    "length_required",
+                    "Chunked request bodies are not supported; send Content-Length.",
+                )
             raw_length = self.headers.get("Content-Length") or 0
             try:
                 length = int(raw_length)
@@ -748,9 +826,11 @@ def make_handler(
         def _dispatch(self) -> None:
             parsed = urlparse(self.path)
             try:
+                # Read the body first: leaving it in the socket desyncs the
+                # next request on a keep-alive connection.
+                body = self._read_body()
                 if not self._authorised():
                     raise APIError(401, "unauthorized", "A valid token is required.")
-                body = self._read_body()
                 request = Request(
                     self.command,
                     parsed.path.rstrip("/") or "/",
@@ -800,7 +880,7 @@ def serve(
     display_host = "127.0.0.1" if host in ("0.0.0.0", "::") else host
     base_url = f"http://{display_host}:{port}"
     api = HelmsMateAPI(store, base_url=base_url)
-    httpd = ThreadingHTTPServer((host, port), make_handler(api, token, allow_origin=allow_origin))
+    httpd = HelmsMateServer((host, port), make_handler(api, token, allow_origin=allow_origin))
     print(f"HelmsMate API on {base_url}")
     print(f"  workspace : {store.workspace}")
     print(f"  discovery : {base_url}/openapi.json")

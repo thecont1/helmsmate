@@ -222,10 +222,15 @@ class MCPServer:
                     "Each error has a path and a hint. Fix them and call build_deck again."
                 ),
                 "ok": False,
+                # The tool did not produce its artefact — say so, so a client
+                # branching on isError does not read a failed build as a
+                # successful one.
+                "is_error": True,
                 "errors": [i.to_dict() for i in errors],
                 "warnings": [i.to_dict() for i in issues if i.severity != ERROR],
             }
 
+        chrome_warning = site_chrome_warning(deck)
         asset_roots = self.store.asset_roots()
         try:
             result = build_html(deck, asset_roots=asset_roots)
@@ -246,8 +251,7 @@ class MCPServer:
             "html_path": f"{record.path}/index.html",
             "source_path": f"{record.path}/deck.yaml",
             "outline": result.outline,
-            "warnings": result.warnings
-            + ([site_chrome_warning(deck)] if site_chrome_warning(deck) else []),
+            "warnings": result.warnings + ([chrome_warning] if chrome_warning else []),
             "message": (
                 f"Built {result.slides} slides ({record.bytes:,} bytes). "
                 f"Open {record.id}/ to view it."
@@ -300,6 +304,12 @@ class MCPServer:
         if method is None:
             return self._error(msg_id, -32600, "Invalid request: no method")
 
+        version = message.get("jsonrpc")
+        if version is not None and version != "2.0":
+            if is_notification:
+                return None
+            return self._error(msg_id, -32600, f"Unsupported JSON-RPC version: {version!r}")
+
         # Notifications carry no id and get no response.
         is_notification = "id" not in message
 
@@ -346,12 +356,13 @@ class MCPServer:
                     "isError": True,
                 }
             else:
+                is_error = bool(isinstance(payload, dict) and payload.get("is_error"))
                 result = {
                     "content": [
                         {"type": "text", "text": json.dumps(payload, indent=2, ensure_ascii=False)}
                     ],
                     "structuredContent": payload,
-                    "isError": False,
+                    "isError": is_error,
                 }
         elif method == "prompts/list":
             result = {"prompts": []}

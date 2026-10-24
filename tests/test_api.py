@@ -8,12 +8,11 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 from tests.fixtures import REPO, minimal_deck  # noqa: F401
 
-from helmsmate.api import HelmsMateAPI, make_handler
+from helmsmate.api import HelmsMateAPI, HelmsMateServer, make_handler
 from helmsmate.store import DeckStore
 
 
@@ -22,7 +21,7 @@ class APITestCase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.store = DeckStore(Path(self.tmp.name))
         self.api = HelmsMateAPI(self.store, base_url="http://127.0.0.1:8787")
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(self.api, quiet=True))
+        self.httpd = HelmsMateServer(("127.0.0.1", 0), make_handler(self.api, quiet=True))
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -32,6 +31,15 @@ class APITestCase(unittest.TestCase):
         self.httpd.shutdown()
         self.httpd.server_close()
         self.tmp.cleanup()
+
+    def _restart_with(self, **kwargs):
+        """Swap in a server with different options, closing the old one."""
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.httpd = HelmsMateServer(("127.0.0.1", 0), make_handler(self.api, quiet=True, **kwargs))
+        self.port = self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+        self.base = f"http://127.0.0.1:{self.port}"
 
     def call(self, method, path, body=None, headers=None):
         data = None
@@ -179,12 +187,7 @@ class TestDecks(APITestCase):
 
 class TestAuth(APITestCase):
     def test_token_required(self):
-        self.httpd.shutdown()
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(self.api, token="s3cret"))
-        self.port = self.httpd.server_address[1]
-        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
-        self.thread.start()
-        self.base = f"http://127.0.0.1:{self.port}"
+        self._restart_with(token="s3cret")
 
         status, _ = self.call("GET", "/api/themes")
         self.assertEqual(status, 401)
@@ -242,3 +245,118 @@ class TestServiceBehaviour(APITestCase):
         )
         self.assertEqual(status, 200)
         self.assertEqual(body["error"]["code"], -32602)
+
+
+class TestTransportBehaviour(APITestCase):
+    """The HTTP layer: framing, tokens, and headers."""
+
+    def _raw(self, request_bytes: bytes, read: int = 4096) -> bytes:
+        import socket
+
+        with socket.create_connection(("127.0.0.1", self.port), timeout=5) as sock:
+            sock.sendall(request_bytes)
+            sock.settimeout(2)
+            try:
+                return sock.recv(read)
+            except socket.timeout:
+                return b""
+
+    def test_401_does_not_desync_the_connection(self):
+        """The body must be drained, or the next request reads the leftovers."""
+        self._restart_with(token="tok")
+
+        body = b'{"deck": {"slides": []}}'
+        raw = self._raw(
+            b"POST /mcp HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\n"
+            b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+        )
+        self.assertIn(b"401", raw.split(b"\r\n")[0])
+
+        # A second request on a fresh connection must be understood.
+        raw2 = self._raw(
+            b"GET /api/themes HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer tok\r\n\r\n"
+        )
+        self.assertIn(b"200 OK", raw2.split(b"\r\n")[0])
+
+    def test_non_ascii_token_does_not_crash(self):
+        self._restart_with(token="clé")
+
+        status, _ = self.call("GET", "/api/themes")
+        self.assertEqual(status, 401)
+        status, _ = self.call("GET", "/api/themes", headers={"Authorization": "Bearer clé"})
+        self.assertEqual(status, 200)
+
+    def test_bearer_scheme_is_case_insensitive(self):
+        self._restart_with(token="tok")
+
+        status, _ = self.call("GET", "/api/themes", headers={"Authorization": "bearer tok"})
+        self.assertEqual(status, 200)
+
+    def test_an_empty_token_is_refused(self):
+        with self.assertRaises(ValueError):
+            make_handler(self.api, token="")
+
+    def test_chunked_bodies_are_refused(self):
+        status, body = self.call_raw_chunked()
+        self.assertEqual(status, 411)
+
+    def test_201_points_at_the_new_deck(self):
+        req = urllib.request.Request(
+            self.base + "/api/decks",
+            data=json.dumps({"deck": minimal_deck()}).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 201)
+            self.assertTrue(resp.headers.get("Location", "").startswith("/api/decks/"))
+
+    def test_bare_deck_with_a_deck_id_is_accepted(self):
+        deck = minimal_deck()
+        deck["deck_id"] = "my-deck"
+        status, body = self.call("POST", "/api/decks", deck)
+        self.assertEqual(status, 201)
+        self.assertEqual(body["deck_id"], "my-deck")
+
+    def call_raw_chunked(self):
+        import socket
+
+        raw = (
+            b"POST /api/decks HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
+        )
+        with socket.create_connection(("127.0.0.1", self.port), timeout=5) as sock:
+            sock.sendall(raw)
+            sock.settimeout(3)
+            data = b""
+            try:
+                while b"\r\n\r\n" not in data:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    data += chunk
+            except socket.timeout:
+                pass
+        head = data.split(b"\r\n")[0].decode(errors="replace")
+        status = int(head.split()[1]) if len(head.split()) > 1 else 0
+        return status, data
+
+
+class TestHeaders(APITestCase):
+    """What the server sends back."""
+
+    def test_nosniff_on_every_response(self):
+        import urllib.request
+
+        with urllib.request.urlopen(self.base + "/api/themes") as resp:
+            self.assertEqual(resp.headers.get("X-Content-Type-Options"), "nosniff")
+
+    def test_served_decks_carry_a_csp_that_blocks_outbound_calls(self):
+        _, body = self.call("POST", "/api/decks", {"deck": minimal_deck()})
+        deck_id = body["deck_id"]
+
+        req = urllib.request.Request(self.base + f"/decks/{deck_id}/")
+        with urllib.request.urlopen(req) as resp:
+            csp = resp.headers.get("Content-Security-Policy", "")
+        self.assertIn("connect-src 'none'", csp)
+        self.assertIn("default-src 'self'", csp)
