@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from tests.fixtures import REPO, example_deck, minimal_deck  # noqa: F401
 
 from helmsmate.engine import BuildError, build_html, site_chrome_warning
+from helmsmate.paths import resolve_asset
 
 
 class TestEngine(unittest.TestCase):
@@ -225,9 +226,6 @@ class TestFigureAsset(unittest.TestCase):
             self.assertIn("/etc/passwd", str(ctx.exception))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestBrandMark(unittest.TestCase):
     """The brand mark is inlined as markup, so it must be an SVG."""
@@ -274,3 +272,25 @@ class TestOutline(unittest.TestCase):
         deck = minimal_deck(slides=[{"layout": "closer", "title": ["One.", "Two."]}])
         result = build_html(deck)
         self.assertEqual(result.outline[0]["title"], "One. Two.")
+
+
+
+class TestAssetResolution(unittest.TestCase):
+    """An asset that cannot be resolved is skipped, not fatal."""
+
+    def test_a_symlink_loop_does_not_raise(self):
+        import os
+        import tempfile
+
+        tmp = tempfile.TemporaryDirectory()
+        root = Path(tmp.name)
+        (root / "assets").mkdir()
+        os.symlink(root / "assets" / "loop", root / "assets" / "loop")
+        try:
+            self.assertIsNone(resolve_asset("assets/loop", root / "assets"))
+        finally:
+            tmp.cleanup()
+
+
+if __name__ == "__main__":
+    unittest.main()

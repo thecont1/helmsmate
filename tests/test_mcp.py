@@ -209,9 +209,6 @@ class TestMCPProtocol(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestMCPEdges(unittest.TestCase):
     """The edges a bad client can reach."""
@@ -299,3 +296,31 @@ class TestMCPStdio(unittest.TestCase):
     def test_a_notification_gets_no_frame(self):
         responses = self._run([json.dumps({"jsonrpc": "2.0", "method": "tools/list"})])
         self.assertEqual(responses, [])
+
+
+
+class TestToolNames(unittest.TestCase):
+    """The tool name must be a string, whatever the client sends."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.server = MCPServer(DeckStore(Path(self.tmp.name)))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_non_string_tool_names_are_rejected(self):
+        for name in (["x"], {"a": 1}, 42, 0, ""):
+            response = self.server.handle_message(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/call",
+                    "params": {"name": name, "arguments": {}},
+                }
+            )
+            self.assertEqual(response["error"]["code"], -32602, f"name={name!r}")
+
+
+if __name__ == "__main__":
+    unittest.main()

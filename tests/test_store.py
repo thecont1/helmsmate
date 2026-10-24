@@ -104,9 +104,6 @@ class TestStore(unittest.TestCase):
             self.assertEqual(root.name, "assets")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestStoreIdentity(unittest.TestCase):
     """Implicit ids, and writes that never leave a deck half-written."""
@@ -159,3 +156,45 @@ class TestStoreIdentity(unittest.TestCase):
         self.assertEqual(self.store.read_deck(record.id)["slides"][0]["title"], "A")
         leftovers = [p.name for p in self.store.workspace.iterdir() if p.name.startswith(".")]
         self.assertEqual(leftovers, [])
+
+
+
+class TestStoreConcurrency(unittest.TestCase):
+    """Two builds of the same deck must not collide."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = DeckStore(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_concurrent_saves_of_one_deck(self):
+        import threading
+
+        deck = {"deck": {"title": "Race"}, "slides": [{"layout": "closer", "title": "x"}]}
+        errors: list[str] = []
+
+        def worker(n: int) -> None:
+            try:
+                self.store.save(deck, f"<html>{n}</html>", deck_id="raced")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(repr(exc))
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(12)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            sorted(p.name for p in self.store.deck_dir("raced").iterdir()),
+            ["deck.yaml", "index.html", "meta.json"],
+        )
+        stray = [p.name for p in self.store.workspace.iterdir() if p.name.startswith(".")]
+        self.assertEqual(stray, [], "staging or backup directories left behind")
+
+
+if __name__ == "__main__":
+    unittest.main()

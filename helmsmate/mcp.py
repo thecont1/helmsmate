@@ -349,7 +349,7 @@ class MCPServer:
                 if is_notification:
                     return None
                 return self._error(msg_id, -32602, "'arguments' must be an object")
-            if not name:
+            if not isinstance(name, str) or not name:
                 if is_notification:
                     return None
                 return self._error(msg_id, -32602, "tools/call requires a tool name")

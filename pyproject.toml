@@ -28,7 +28,8 @@ packages = ["helmsmate"]
 "engine/template.html" = "helmsmate/_data/template.html"
 "themes" = "helmsmate/_data/themes"
 "assets/sef-corona.svg" = "helmsmate/_data/assets/sef-corona.svg"
-"assets/icons" = "helmsmate/_data/assets/icons"
+"assets/icons/thin-sunglasses.svg" = "helmsmate/_data/assets/icons/thin-sunglasses.svg"
+"assets/icons/regular-sunglasses.svg" = "helmsmate/_data/assets/icons/regular-sunglasses.svg"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -38,9 +39,12 @@ include = [
   "scripts",
   "tests",
   "deck.example.yaml",
+  "demo.yaml",
   "README.md",
   # the wheel force-includes these — they must be in the sdist too, or a
   # wheel cannot be built from it
   "assets/sef-corona.svg",
-  "assets/icons",
+  "assets/orio-mark.svg",
+  "assets/icons/thin-sunglasses.svg",
+  "assets/icons/regular-sunglasses.svg",
 ]

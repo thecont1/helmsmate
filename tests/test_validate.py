@@ -114,9 +114,6 @@ class TestValidate(unittest.TestCase):
         self.assertEqual(issues[0].severity, ERROR)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestLayoutFields(unittest.TestCase):
     """A layout declares the fields it consumes; anything else is ignored."""
@@ -155,3 +152,7 @@ class TestBrandMarkValidation(unittest.TestCase):
     def test_an_svg_brand_mark_is_accepted(self):
         issues = validate_deck(minimal_deck())
         self.assertNotIn("deck.brand.mark", paths_for(issues))
+
+
+if __name__ == "__main__":
+    unittest.main()

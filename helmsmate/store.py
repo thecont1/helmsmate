@@ -22,6 +22,8 @@ import hashlib
 import json
 import re
 import shutil
+import tempfile
+import threading
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -86,6 +88,22 @@ class DeckStore:
 
     def __init__(self, workspace: Path | None = None) -> None:
         self.workspace = Path(workspace) if workspace else paths.default_workspace()
+        self._locks: dict[str, threading.Lock] = {}
+        self._locks_guard = threading.Lock()
+
+    def _lock_for(self, deck_id: str) -> threading.Lock:
+        """A lock per deck id.
+
+        The API server is threaded, and two clients can build the same deck
+        at the same time — an implicit id is derived from the content, so
+        the same deck really can collide. One save at a time per deck.
+        """
+        with self._locks_guard:
+            lock = self._locks.get(deck_id)
+            if lock is None:
+                lock = threading.Lock()
+                self._locks[deck_id] = lock
+            return lock
 
     # ── paths ──────────────────────────────────────────────────────────────
 
@@ -156,34 +174,40 @@ class DeckStore:
             path=str(target),
         )
 
-        staging = target.parent / f".{target.name}.staging"
-        shutil.rmtree(staging, ignore_errors=True)
-        staging.mkdir(parents=True)
-        try:
-            with open(staging / "deck.yaml", "w", encoding="utf-8") as f:
-                yaml.safe_dump(deck, f, sort_keys=False, allow_unicode=True, width=100)
-            with open(staging / "index.html", "w", encoding="utf-8") as f:
-                f.write(html)
-            (staging / "meta.json").write_text(
-                json.dumps(record.to_dict(), indent=2), encoding="utf-8"
+        with self._lock_for(deck_id):
+            # A unique staging directory per save: two builds of the same
+            # deck must not share a path.
+            staging = Path(
+                tempfile.mkdtemp(prefix=f".{target.name}.staging-", dir=str(target.parent))
             )
-            self._swap(staging, target)
-        finally:
-            shutil.rmtree(staging, ignore_errors=True)
+            try:
+                with open(staging / "deck.yaml", "w", encoding="utf-8") as f:
+                    yaml.safe_dump(deck, f, sort_keys=False, allow_unicode=True, width=100)
+                with open(staging / "index.html", "w", encoding="utf-8") as f:
+                    f.write(html)
+                (staging / "meta.json").write_text(
+                    json.dumps(record.to_dict(), indent=2), encoding="utf-8"
+                )
+                self._swap(staging, target)
+            finally:
+                shutil.rmtree(staging, ignore_errors=True)
         return record
 
     @staticmethod
     def _swap(staging: Path, target: Path) -> None:
         """Move a staged deck into place, keeping the old one if it fails."""
-        backup = target.parent / f".{target.name}.previous"
-        shutil.rmtree(backup, ignore_errors=True)
+        # A unique path that does not exist yet, for the old deck to move to.
+        backup = Path(
+            tempfile.mkdtemp(prefix=f".{target.name}.previous-", dir=str(target.parent))
+        )
+        backup.rmdir()
         if target.exists():
             target.rename(backup)
         try:
             staging.rename(target)
         except OSError:
             if backup.exists():
-                backup.rename(target)
+                backup.rename(target)  # put the old deck back
             raise
         shutil.rmtree(backup, ignore_errors=True)
 

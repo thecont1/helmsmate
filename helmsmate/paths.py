@@ -108,11 +108,13 @@ def resolve_asset(rel: str, *roots: Path) -> Path | None:
         if not root:
             continue
         for variant in variants:
-            target = (root / variant).resolve()
             try:
+                target = (root / variant).resolve()
                 target.relative_to(root.resolve())
-            except ValueError:
-                continue  # path escapes this root — try the next one
-            if target.exists():
-                return target
+                if target.exists():
+                    return target
+            except (OSError, ValueError):
+                # A symlink loop, a permission problem, or a path that
+                # escapes this root — try the next variant.
+                continue
     return None
