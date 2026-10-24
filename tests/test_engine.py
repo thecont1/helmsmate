@@ -291,6 +291,25 @@ class TestAssetResolution(unittest.TestCase):
         finally:
             tmp.cleanup()
 
+    def test_a_symlink_loop_does_not_raise_on_python_3_10_to_3_12(self):
+        """Before 3.13, Path.resolve() raised RuntimeError for a symlink loop.
 
-if __name__ == "__main__":
-    unittest.main()
+        The real loop raises nothing on 3.13+, so the older behaviour is
+        simulated — otherwise this test would pass on the version where the
+        bug does not exist.
+        """
+        import pathlib
+        from unittest import mock
+
+        real_resolve = pathlib.Path.resolve
+
+        def resolve(self, *args, **kwargs):
+            if self.name == "loop":
+                raise RuntimeError("Symlink loop from 'loop'")
+            return real_resolve(self, *args, **kwargs)
+
+        with mock.patch.object(pathlib.Path, "resolve", resolve):
+            self.assertIsNone(resolve_asset("loop", Path("/tmp")))
+
+
+if __name__ == "__main__":    unittest.main()

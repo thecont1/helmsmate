@@ -113,8 +113,13 @@ def resolve_asset(rel: str, *roots: Path) -> Path | None:
                 target.relative_to(root.resolve())
                 if target.exists():
                     return target
-            except (OSError, ValueError):
+            except (OSError, RuntimeError, ValueError):
                 # A symlink loop, a permission problem, or a path that
                 # escapes this root — try the next variant.
+                #
+                # RuntimeError is here for Python 3.10–3.12, where
+                # Path.resolve() raised it for a symlink loop regardless of
+                # strict. From 3.13 the loop raises OSError in strict mode
+                # and nothing at all in the non-strict mode used here.
                 continue
     return None
