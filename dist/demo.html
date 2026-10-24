@@ -214,16 +214,25 @@ body.menu-open .deck{z-index:12}
 .site-bar-btn[aria-pressed="true"] .icon-wrap svg path,
 .site-bar-btn[aria-pressed="true"] .icon-wrap svg line{filter:invert(1)}
 /* site nav overlay — full-height drop sheet */
+/* Closed: visibility:hidden, not the hidden attribute. .site-nav sets
+   display:flex, and a class selector outranks the UA's [hidden] rule — so
+   the attribute never hid anything and the links stayed focusable.
+   The visibility change is delayed by the transition length, so the sheet
+   still slides out before it disappears. */
 .site-nav{
   position:fixed;inset:0;z-index:30;
   background:var(--paper);color:var(--marine-900);
   display:flex;flex-direction:column;
   padding:96px 32px 40px;
   font-family:var(--font-mono);
-  transform:translateY(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  transform:translateY(-100%);visibility:hidden;
+  transition:transform .3s cubic-bezier(.4,0,.2,1),visibility 0s linear .3s;
   overflow-y:auto;
 }
-.site-nav.open{transform:translateY(0)}
+.site-nav.open{
+  transform:translateY(0);visibility:visible;
+  transition:transform .3s cubic-bezier(.4,0,.2,1),visibility 0s;
+}
 .site-nav-close{
   position:absolute;top:18px;right:18px;
   height:34px;min-width:34px;padding:7px;
@@ -454,7 +463,7 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
     <span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>
   </button>
 </header>
-<nav class="site-nav" id="site-nav" aria-label="Site navigation" hidden>
+<nav class="site-nav" id="site-nav" aria-label="Site navigation">
   <button class="site-nav-close" id="site-nav-close" type="button" aria-label="Close menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
@@ -637,8 +646,9 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   var nav=document.getElementById('site-nav');
   var navToggle=document.getElementById('site-nav-toggle');
   var navClose=document.getElementById('site-nav-close');
-  function openNav(){if(!nav)return;nav.hidden=false;nav.classList.add('open');navToggle.setAttribute('aria-expanded','true');}
-  function closeNav(){if(!nav)return;nav.classList.remove('open');navToggle.setAttribute('aria-expanded','false');setTimeout(function(){nav.hidden=true;},300);}
+  // Visibility is CSS's job — see the .site-nav rules.
+  function openNav(){if(!nav)return;nav.classList.add('open');navToggle.setAttribute('aria-expanded','true');}
+  function closeNav(){if(!nav)return;nav.classList.remove('open');navToggle.setAttribute('aria-expanded','false');}
   if(navToggle){navToggle.addEventListener('click',openNav);}
   if(navClose){navClose.addEventListener('click',closeNav);}
   if(nav){nav.addEventListener('click',function(e){if(e.target===nav)closeNav();});}
