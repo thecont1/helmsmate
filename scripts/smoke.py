@@ -280,7 +280,13 @@ def run_mcp(workspace: Path) -> None:
             # than hang on a wedged server.
             proc.kill()
             raise SmokeError(f"no response to {method} within {MCP_TIMEOUT}s")
-        return json.loads(line)
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError as exc:
+            # Malformed output is a failure to report, not a crash: the run
+            # continues and prints its summary.
+            excerpt = line.strip()[:120]
+            raise SmokeError(f"malformed response to {method}: {exc} — got {excerpt!r}") from exc
 
     def tool(name: str, arguments: dict) -> dict:
         return rpc("tools/call", {"name": name, "arguments": arguments}).get("result", {})
@@ -337,7 +343,9 @@ def run_mcp(workspace: Path) -> None:
             bool(bad.get("isError")) and "slides[0].layout" in text,
         )
     except SmokeError as exc:
-        check("the MCP server answered", False, str(exc)[:80])
+        # The message carries the method and the offending output — show it
+        # whole enough to diagnose from.
+        check("the MCP server answered", False, str(exc)[:200])
     finally:
         try:
             if proc.stdin:
