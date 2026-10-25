@@ -124,7 +124,7 @@ guesses.
 
 | Field | Kind | Notes |
 | --- | --- | --- |
-| `title` | richtext | newlines fold into balanced line breaks; `|` forces a break |
+| `title` | richtext | newlines fold into balanced line breaks; `\|` forces a break |
 | `lede`, `lede_after` | richtext | newlines fold into natural prose |
 | `lede2`, `note` | lines | newlines are preserved as line breaks |
 | `cards[]` | cards | `{k, h, p}` — `h` required, `k` and `p` optional |

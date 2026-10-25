@@ -163,5 +163,18 @@ It is safe to re-run — every step overwrites rather than duplicates.
 
 ## Uninstalling
 
-Remove the `helmsmate` entry from your MCP config, delete the skill
-directory, and remove the checkout. Nothing is written anywhere else.
+HelmsMate writes to a handful of places. Remove **only** HelmsMate's entries
+from each — everything else in them belongs to your client and should stay.
+
+| What | Where |
+| --- | --- |
+| The MCP server entry | the `helmsmate` key under `mcpServers` in `~/.minimax/mcp.json`, `~/.claude.json`, `~/.cursor/mcp.json`, `.mcp.json` and `.cursor/mcp.json` — whichever of these you registered with |
+| The companion skill | `~/.agents/skills/helmsmate-decks/`, `~/.minimax/skills/helmsmate-decks/` (a symlink into the first), `~/.claude/skills/helmsmate-decks/` and `~/.cursor/skills/helmsmate-decks/` |
+| Built decks | every `<deck-id>/` directory in the workspace — `<checkout>/decks` by default, or wherever `HELMSMATE_WORKSPACE` points |
+| The checkout | `~/tools/helmsmate`, or wherever you cloned it |
+
+Keep the `.mcp.json` and `.cursor/mcp.json` **files** if they also hold other
+servers — delete only the `helmsmate` entry from them. Delete the whole file
+only if HelmsMate was the only thing in it.
+
+Nothing else is written: no system paths, no daemons, no background processes.

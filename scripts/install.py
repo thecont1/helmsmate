@@ -32,6 +32,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import venv
 from pathlib import Path
 
@@ -51,6 +52,12 @@ EXPECTED_TOOLS = {
 }
 
 OK, WARN, FAIL = "ok", "warn", "fail"
+
+# Every subprocess the installer runs is bounded — a stalled clone, a hung pip
+# or a silent MCP server must not block the install forever.
+CLONE_TIMEOUT = 600
+PIP_TIMEOUT = 300
+RPC_TIMEOUT = 60
 
 
 class Step:
@@ -88,11 +95,21 @@ def ensure_checkout(target: Path, repo: Path | None) -> tuple[Path, Step]:
     target.parent.mkdir(parents=True, exist_ok=True)
     if shutil.which("git") is None:
         return target, Step(FAIL, "git is not installed", "Install git, or pass --repo with a checkout")
-    proc = subprocess.run(
-        ["git", "clone", "--depth", "1", REPO_URL, str(target)],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        proc = subprocess.run(
+            ["git", "clone", "--depth", "1", REPO_URL, str(target)],
+            capture_output=True,
+            text=True,
+            timeout=CLONE_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return target, Step(
+            FAIL,
+            "clone timed out",
+            f"No response in {CLONE_TIMEOUT}s from {REPO_URL}",
+        )
+    except OSError as exc:
+        return target, Step(FAIL, "could not run git", repr(exc))
     if proc.returncode != 0:
         return target, Step(FAIL, "clone failed", (proc.stderr or "").strip())
     return target.resolve(), Step(OK, "cloned the repository", f"{REPO_URL} → {target}")
@@ -104,8 +121,11 @@ def ensure_checkout(target: Path, repo: Path | None) -> tuple[Path, Step]:
 def ensure_interpreter(checkout: Path, python: str | None) -> tuple[str, Step]:
     """Return the interpreter the MCP server should run under."""
     if python:
-        resolved = shutil.which(python) or str(Path(python).expanduser())
-        if not Path(resolved).exists():
+        found = shutil.which(python)
+        # abspath, not resolve: resolving would follow the venv's symlink to
+        # the base interpreter and lose the virtualenv's site-packages.
+        resolved = os.path.abspath(os.path.expanduser(found or python))
+        if not os.path.isfile(resolved):
             return resolved, Step(FAIL, f"interpreter not found: {resolved}")
         return resolved, Step(OK, "using the given interpreter", resolved)
 
@@ -117,11 +137,21 @@ def ensure_interpreter(checkout: Path, python: str | None) -> tuple[str, Step]:
         except Exception as exc:  # noqa: BLE001 — the report is the product
             return sys.executable, Step(FAIL, "could not create a virtualenv", repr(exc))
 
-    proc = subprocess.run(
-        [str(venv_python), "-m", "pip", "install", "--quiet", "--upgrade", "PyYAML"],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        proc = subprocess.run(
+            [str(venv_python), "-m", "pip", "install", "--quiet", "--upgrade", "PyYAML"],
+            capture_output=True,
+            text=True,
+            timeout=PIP_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return str(venv_python), Step(
+            FAIL,
+            "pip install timed out",
+            f"No response in {PIP_TIMEOUT}s — check the network and retry",
+        )
+    except OSError as exc:
+        return str(venv_python), Step(FAIL, "could not run pip", repr(exc))
     if proc.returncode != 0:
         return str(venv_python), Step(FAIL, "could not install PyYAML", (proc.stderr or "").strip())
 
@@ -162,14 +192,28 @@ def _minimax_entry(python: str, checkout: Path, workspace: Path) -> dict:
     return entry
 
 
+class ConfigError(Exception):
+    """A client's config file exists but could not be understood."""
+
+
 def _read_json(path: Path) -> dict:
+    """Read a client's JSON config.
+
+    A missing file is an empty config. A malformed one is an error: silently
+    treating it as empty would let the next write destroy whatever the client
+    was already configured with.
+    """
     if not path.exists():
         return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
-    return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError as exc:
+        raise ConfigError(f"{path} is not valid JSON: {exc}") from exc
+    except OSError as exc:
+        raise ConfigError(f"{path} could not be read: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ConfigError(f"{path} does not contain a JSON object")
+    return data
 
 
 def _write_json(path: Path, data: dict) -> None:
@@ -193,7 +237,13 @@ def register(clients: list[str], python: str, checkout: Path, workspace: Path) -
             targets.append(("Cursor (project)", Path.cwd() / ".cursor" / "mcp.json", mcp_entry))
 
     for label, path, builder in targets:
-        data = _read_json(path)
+        try:
+            data = _read_json(path)
+        except ConfigError as exc:
+            # Leave the file exactly as it is — the user's other settings in it
+            # are still theirs to keep.
+            steps.append(Step(FAIL, f"could not read the {label} config", str(exc)))
+            continue
         servers = data.setdefault("mcpServers", {})
         if not isinstance(servers, dict):
             servers = {}
@@ -233,22 +283,27 @@ def install_skill(checkout: Path, clients: list[str]) -> list[Step]:
 
     agents_root = Path.home() / ".agents" / "skills"
     canonical = agents_root / SKILL_NAME
-    canonical.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, canonical / "SKILL.md")
-    steps.append(Step(OK, "installed the companion skill", str(canonical / "SKILL.md")))
+    try:
+        canonical.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, canonical / "SKILL.md")
+        steps.append(Step(OK, "installed the companion skill", str(canonical / "SKILL.md")))
+    except OSError as exc:
+        steps.append(Step(FAIL, "could not install the companion skill", repr(exc)))
 
     # MiniMax Code discovers skills through its own directory; the existing
-    # convention there is a relative symlink into ~/.agents/skills.
+    # convention there is a relative symlink into ~/.agents/skills. If MiniMax
+    # was asked for, create the directory rather than skipping the link.
     mcode_skills = Path.home() / ".minimax" / "skills"
-    if mcode_skills.is_dir():
+    if "minimax" in clients or mcode_skills.is_dir():
         link = mcode_skills / SKILL_NAME
         try:
+            mcode_skills.mkdir(parents=True, exist_ok=True)
             if link.is_symlink() or link.exists():
                 link.unlink()
             link.symlink_to(Path("..") / ".." / ".agents" / "skills" / SKILL_NAME)
             steps.append(Step(OK, "linked the skill for MiniMax Code", str(link)))
         except OSError as exc:
-            steps.append(Step(WARN, "could not link the skill for MiniMax Code", repr(exc)))
+            steps.append(Step(FAIL, "could not link the skill for MiniMax Code", repr(exc)))
 
     for client, folder in (("claude", ".claude/skills"), ("cursor", ".cursor/skills")):
         if client not in clients:
@@ -259,7 +314,7 @@ def install_skill(checkout: Path, clients: list[str]) -> list[Step]:
             shutil.copyfile(source, dest / "SKILL.md")
             steps.append(Step(OK, f"installed the skill for {client}", str(dest / "SKILL.md")))
         except OSError as exc:
-            steps.append(Step(WARN, f"could not install the skill for {client}", repr(exc)))
+            steps.append(Step(FAIL, f"could not install the skill for {client}", repr(exc)))
 
     return steps
 
@@ -267,13 +322,35 @@ def install_skill(checkout: Path, clients: list[str]) -> list[Step]:
 # ── 5. verification ─────────────────────────────────────────────────────────
 
 
-def _rpc(proc: subprocess.Popen, message: dict) -> dict:
+def _read_line(stream, box: list[str]) -> None:
+    """Read one line into `box`. The thread only reports what it managed to read."""
+    try:
+        box.append(stream.readline())
+    except Exception:  # noqa: BLE001 — a closed pipe is just an empty line here
+        box.append("")
+
+
+def _rpc(proc: subprocess.Popen, message: dict, timeout: float = RPC_TIMEOUT) -> dict:
+    """Send one JSON-RPC message and wait for its reply, with a deadline.
+
+    A read on a pipe has no timeout of its own, so the read happens on a
+    thread. If the server goes quiet the child is stopped rather than the
+    install hanging on it forever.
+    """
     proc.stdin.write(json.dumps(message) + "\n")
     proc.stdin.flush()
-    line = proc.stdout.readline()
-    if not line:
+
+    box: list[str] = []
+    reader = threading.Thread(target=_read_line, args=(proc.stdout, box), daemon=True)
+    reader.start()
+    reader.join(timeout)
+
+    if reader.is_alive():
+        proc.terminate()
+        raise TimeoutError(f"no reply within {timeout:.0f}s")
+    if not box or not box[0]:
         raise RuntimeError("the server closed its output stream")
-    return json.loads(line)
+    return json.loads(box[0])
 
 
 def verify(python: str, checkout: Path, workspace: Path) -> list[Step]:
@@ -432,6 +509,13 @@ def main(argv: list[str] | None = None) -> int:
                     WARN,
                     "no coding agent config found on this machine",
                     "Re-run with --client minimax | claude | cursor | all",
+                )
+            )
+            steps.append(
+                Step(
+                    FAIL,
+                    "nothing was registered with any client",
+                    "Pick the client you use: --client minimax | claude | cursor | all",
                 )
             )
         else:
