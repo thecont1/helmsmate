@@ -32,6 +32,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import venv
 from pathlib import Path
@@ -217,8 +218,29 @@ def _read_json(path: Path) -> dict:
 
 
 def _write_json(path: Path, data: dict) -> None:
+    """Write a config atomically.
+
+    A plain write truncates the target first, so a failure part-way through
+    would leave the user with a broken config — and every other server they
+    had configured in it lost. Stage the file beside the target, then swap it
+    in only once the write has succeeded.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    payload = json.dumps(data, indent=2) + "\n"
+    mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def register(clients: list[str], python: str, checkout: Path, workspace: Path) -> list[Step]:
@@ -244,12 +266,25 @@ def register(clients: list[str], python: str, checkout: Path, workspace: Path) -
             # are still theirs to keep.
             steps.append(Step(FAIL, f"could not read the {label} config", str(exc)))
             continue
-        servers = data.setdefault("mcpServers", {})
+        servers = data.get("mcpServers", {})
         if not isinstance(servers, dict):
-            servers = {}
-            data["mcpServers"] = servers
+            # Not ours to reinterpret. Replacing it would destroy whatever the
+            # client had there, so leave the file alone and say so.
+            steps.append(
+                Step(
+                    FAIL,
+                    f"the {label} config has a non-object 'mcpServers'",
+                    "Left the file unchanged — repair the value by hand, then re-run",
+                )
+            )
+            continue
         servers[SERVER_NAME] = builder(python, checkout, workspace)
-        _write_json(path, data)
+        data["mcpServers"] = servers
+        try:
+            _write_json(path, data)
+        except OSError as exc:
+            steps.append(Step(FAIL, f"could not write the {label} config", repr(exc)))
+            continue
         steps.append(Step(OK, f"registered with {label}", str(path)))
 
     return steps
@@ -279,7 +314,9 @@ def install_skill(checkout: Path, clients: list[str]) -> list[Step]:
     steps: list[Step] = []
     source = checkout / "skills" / SKILL_NAME / "SKILL.md"
     if not source.exists():
-        return [Step(WARN, "no companion skill in this checkout", str(source))]
+        # Without the skill the agent has the tools but no reason to reach for
+        # them — the install is incomplete, not merely untidy.
+        return [Step(FAIL, "no companion skill in this checkout", str(source))]
 
     agents_root = Path.home() / ".agents" / "skills"
     canonical = agents_root / SKILL_NAME
