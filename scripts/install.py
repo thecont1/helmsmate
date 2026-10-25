@@ -225,11 +225,16 @@ def _write_json(path: Path, data: dict) -> None:
     had configured in it lost. Stage the file beside the target, then swap it
     in only once the write has succeeded.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(data, indent=2) + "\n"
-    mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+    # A client config may be a symlink into a dotfiles repo. Replacing the
+    # symlink would break it and leave the real config untouched, so write
+    # through to the target and leave the symlink exactly as it is.
+    target = path.resolve() if path.is_symlink() else path
 
-    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(data, indent=2) + "\n"
+    mode = target.stat().st_mode & 0o777 if target.exists() else 0o644
+
+    fd, tmp_name = tempfile.mkstemp(dir=str(target.parent), prefix=f".{target.name}.", suffix=".tmp")
     tmp = Path(tmp_name)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -237,7 +242,7 @@ def _write_json(path: Path, data: dict) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.chmod(tmp, mode)
-        os.replace(tmp, path)
+        os.replace(tmp, target)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise
