@@ -1,38 +1,35 @@
 # helmsmate demo page — single-slide deck for /demo/.
 # Same header/footer chrome as the main deck, but the centre holds a video
-# player. Drop your robby-demo.mp4 alongside this page (e.g.
-# /demo/robby-demo.mp4) and the <video> element below will pick it up.
+# player. Drop your helmsmate-demo.mp4 alongside this page (e.g.
+# /demo/helmsmate-demo.mp4) and the <video> element below will pick it up.
 
 deck:
-  title: "robby demo — SegFault 2026"
+  title: "HelmsMate demo"
   brand:
-    mark: assets/orio-mark.svg
-    word: "robby **& troid**"
-    alt: "robby & troid — orio cookie mark"
+    word: "Helms**Mate**"
+    alt: "HelmsMate"
   footer:
-    default: "robby demo · SegFault 2026 · Mahesh Shantaram"
+    default: "HelmsMate · decks compiled from YAML"
 
-theme: robby-trace
+theme: archive-trace
 
 slides:
 
   # ════════════════════════ DEMO VIDEO ════════════════════════
   - layout: demo
-    context: SegFault 2026 · Demonstration
+    context: Demonstration
     eyebrow: A working demonstration
-    title: See robby in action.
+    title: See a deck being built.
     figure: |
       <video controls preload="metadata" playsinline
-             poster="robby-demo-poster.jpg">
-        <source src="robby-demo.mp4" type="video/mp4">
+             poster="helmsmate-demo-poster.jpg">
+        <source src="helmsmate-demo.mp4" type="video/mp4">
         Your browser doesn't support embedded video.
-        <a href="robby-demo.mp4">Download the demo MP4</a>.
+        <a href="helmsmate-demo.mp4">Download the demo MP4</a>.
       </video>
     lede: >-
-      A short walkthrough of the gallery, the Teppanyaki Counter, the recipe
-      editor, and a flip from obverse to reverse. Watch the working
-      mechanism — compile, counter, palette, bind — the same compiler that
-      produced the deck you just read.
+      A short walkthrough of the authoring loop — read the schema, write the
+      deck, build it, then open the single file that comes out the other end.
     lede2: >-
       90 seconds · no narration · click the play button.
-    foot: Demo video · hosted at robby.thecontrarian.in/demo
+    foot: Demo video · drop helmsmate-demo.mp4 next to this page

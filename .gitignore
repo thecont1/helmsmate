@@ -11,6 +11,11 @@ shots/
 # API workspace — decks built by the service
 decks/
 
+# MCP client configs written by scripts/install.py
+.mcp.json
+.cursor/
+.vscode/
+
 # local media: large binaries that live on disk but not in git
 /dist/*.mp4
 /assets/gallery/

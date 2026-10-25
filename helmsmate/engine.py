@@ -287,7 +287,7 @@ def slide_html(
     else:
         raise BuildError(f"Unknown layout: {layout}")
 
-    return f"""<section class="slide" data-context="{context}">
+    return f"""<section class="slide" data-context="{context}" data-layout="{layout}">
   <div class="stage">
     {body}
   </div>
@@ -305,12 +305,11 @@ WEBFONTS_START = "<!--HELMSMATE:WEBFONTS:START-->"
 WEBFONTS_END = "<!--HELMSMATE:WEBFONTS:END-->"
 
 DEFAULT_SITE_WORD = (
-    'troid<span class="amp">&amp;</span>robby'
-    '<span class="slash">/</span><span class="suffix">v1</span>'
+    'HelmsMate<span class="slash">/</span><span class="suffix">v0.1</span>'
 )
-DEFAULT_SITE_HOME_URL = "https://robby.thecontrarian.in/"
-DEFAULT_SITE_HOME_LABEL = "troid & robby — back to the gallery"
-DEFAULT_CODE_NAMES = ("robby", "troid")
+DEFAULT_SITE_HOME_URL = "https://github.com/thecont1/helmsmate"
+DEFAULT_SITE_HOME_LABEL = "HelmsMate — the source repository"
+DEFAULT_CODE_NAMES = ("helmsmate",)
 DEFAULT_MARK = "assets/sef-corona.svg"
 
 
@@ -366,18 +365,18 @@ def _figure_asset_markup(slide: dict, asset_roots: tuple[Path, ...]) -> str:
 def site_chrome_warning(deck: dict) -> str | None:
     """Warn when a deck carries the HelmsMate site chrome.
 
-    The chrome carries the logo, the theme toggle and links to
-    robby.thecontrarian.in. That is right for the project's own deck and
-    wrong for a deck authored elsewhere, so callers that serve decks to
-    outside clients surface this.
+    The chrome carries the logo, the theme toggle and a link to the
+    HelmsMate source repository. That is right for a deck published from
+    this repository and wrong for a deck authored elsewhere, so callers
+    that serve decks to outside clients surface this.
     """
     chrome = (deck.get("deck", {}) or {}).get("chrome", True)
     if chrome is False or isinstance(chrome, dict):
         return None
     return (
-        "The deck includes the HelmsMate site chrome (logo, theme toggle and links to "
-        "robby.thecontrarian.in). Set 'deck.chrome: false' for a standalone deck, or a "
-        "mapping ('word', 'home_url', 'home_label') to brand it."
+        "The deck includes the HelmsMate site chrome (logo, theme toggle and a "
+        "link to the source repository). Set 'deck.chrome: false' for a standalone "
+        "deck, or a mapping ('word', 'home_url', 'home_label') to brand it."
     )
 
 

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>robby demo — SegFault 2026</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iY29yb25hIiB2aWV3Qm94PSIwIDAgNjQgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJyb2JieSAmYW1wOyB0cm9pZCDigJQgb3JpbyBjb29raWUgbWFyayI+CiAgPCEtLQogICAgcm9iYnkgJiB0cm9pZCDigJQgb3JpbyBtYXJrLCByZXRpbnRlZCB0byB0aGUgcm9iYnkgcGFsZXR0ZS4KICAgIEEgdHdvLXRvbmUgY29pbjogb2J2ZXJzZSAoY3JlYW0sIGxlZnQpIGFuZCByZXZlcnNlIChpbmssIHJpZ2h0KSwgc3BsaXQKICAgIGJ5IGEgaGFpcmxpbmUgdmVybWlsaW9uIHNwaW5lLiBUd28gc21hbGwgZG90cyBmYWNlIGVhY2ggb3RoZXIgYWNyb3NzCiAgICB0aGUgc3BpbmUg4oCUIHRoZSBvYnZlcnNlIGFuZCByZXZlcnNlLCBtdXR1YWxseSBleGNsdXNpdmUgdG8gc2lnaHQuCiAgICBQYWxldHRlOiBSZWdpc3RyYXRpb24gVmVybWlsaW9uICNlMzQ0MmYgwrcgYXJjaGl2ZSBwYXBlciAjZjRlZmUxIMK3CiAgICBjaGFyY29hbCBpbmsgIzFjMWExOS4KICAtLT4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyOC41IiBmaWxsPSIjZTM0NDJmIi8+CiAgPCEtLSBsZWZ0IGhhbGYgPSBvYnZlcnNlIChhcmNoaXZlIHBhcGVyKSAtLT4KICA8cGF0aCBkPSJNIDMyIDMuNSBBIDI4LjUgMjguNSAwIDAgMCAzMiA2MC41IFoiIGZpbGw9IiNmNGVmZTEiLz4KICA8IS0tIHNwaW5lIOKAlCB2ZXJtaWxpb24gaGFpcmxpbmUgc28gdGhlIHR3byBoYWx2ZXMgcmVhZCBhcyBvbmUgb2JqZWN0IC0tPgogIDxsaW5lIHgxPSIzMiIgeTE9IjMuNSIgeDI9IjMyIiB5Mj0iNjAuNSIgc3Ryb2tlPSIjMWMxYTE5IiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC41NSIvPgogIDwhLS0gdHdvIGZhY2luZyBjZW50cmUgbWFya3MgLS0+CiAgPGNpcmNsZSBjeD0iMjYiIGN5PSIzMiIgcj0iMi42IiBmaWxsPSIjMWMxYTE5Ii8+CiAgPGNpcmNsZSBjeD0iMzgiIGN5PSIzMiIgcj0iMi42IiBmaWxsPSIjZjRlZmUxIi8+CiAgPCEtLSB0aGluIG91dGVyIHJpbmcgZWNob2luZyB0aGUgY29yb25hIC0tPgogIDxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNGVmZTEiIHN0cm9rZS13aWR0aD0iMS4yIiBvcGFjaXR5PSIwLjU1Ii8+Cjwvc3ZnPg==">
+<title>HelmsMate demo</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iY29yb25hIiB2aWV3Qm94PSIwIDAgNjQgNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJTYWludCBFbG1zIEZpcmUg4oCUIENvcm9uYU1hcmsiPgogIDwhLS0KICAgIE9mZmljaWFsIFNhaW50IEVsbXMgRmlyZSBDb3JvbmFNYXJrLCByZWJ1aWx0IGZyb20gc3JjL2NvbXBvbmVudHMvTmF2aWdhdGlvbi50c3gKICAgICh0aGUgY29yb25hIHNwYXJrOiBTdC4gRWxtbydzIGZpcmUgcmFkaWF0aW5nIGF0IHRoZSBtYXN0aGVhZCkuCiAgICBFeGFjdCBnZW9tZXRyeSBzY2FsZWQgw5coOC8zKSBmcm9tIHRoZSAyNMOXMjQgdmlld0JveCBvbnRvIGEgNjTDlzY0IGJhZGdlIGRpc2MuCiAgICBiZWFjb24tNjAwIGRpc2MgwrcgcGFwZXItd2hpdGUgY29yb25hIMK3IDQgbG9uZyByYXlzIChOL0UvUy9XKSArIDQgc2hvcnQgcmF5cyAoZGlhZ29uYWxzKS4KICAtLT4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyOC41IiBmaWxsPSIjM0U1RUMwIi8+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0Y2RjdGQiIgc3Ryb2tlLXdpZHRoPSIxLjIiIG9wYWNpdHk9IjAuNDUiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMiwzMikiPgogICAgPGNpcmNsZSByPSI1LjQiIGZpbGw9IiNGNkY3RkIiLz4KICAgIDwhLS0gOCByYXlzOiBldmVuID0gbG9uZyAoc3Ryb2tlV2lkdGggMiksIG9kZCA9IHNob3J0ICgxLjQpIOKAlCBtYXRjaGVzIENvcm9uYU1hcmsgLS0+CiAgICA8ZyBzdHJva2U9IiNGNkY3RkIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICAgIDxsaW5lIHgxPSI5LjEiICB5MT0iMCIgICAgIHgyPSIxNy45IiAgeTI9IjAiICAgICAgc3Ryb2tlLXdpZHRoPSIzLjQiLz4KICAgICAgPGxpbmUgeDE9IjYuNCIgIHkxPSI2LjQiICAgeDI9IjEyLjI1IiB5Mj0iMTIuMjUiICBzdHJva2Utd2lkdGg9IjIuNCIvPgogICAgICA8bGluZSB4MT0iMCIgICAgeTE9IjkuMSIgICB4Mj0iMCIgICAgIHkyPSIxNy45IiAgIHN0cm9rZS13aWR0aD0iMy40Ii8+CiAgICAgIDxsaW5lIHgxPSItNi40IiB5MT0iNi40IiAgIHgyPSItMTIuMjUiIHkyPSIxMi4yNSIgc3Ryb2tlLXdpZHRoPSIyLjQiLz4KICAgICAgPGxpbmUgeDE9Ii05LjEiIHkxPSIwIiAgICAgeDI9Ii0xNy45IiB5Mj0iMCIgICAgICBzdHJva2Utd2lkdGg9IjMuNCIvPgogICAgICA8bGluZSB4MT0iLTYuNCIgeTE9Ii02LjQiICB4Mj0iLTEyLjI1IiB5Mj0iLTEyLjI1IiBzdHJva2Utd2lkdGg9IjIuNCIvPgogICAgICA8bGluZSB4MT0iMCIgICAgeTE9Ii05LjEiICB4Mj0iMCIgICAgIHkyPSItMTcuOSIgIHN0cm9rZS13aWR0aD0iMy40Ii8+CiAgICAgIDxsaW5lIHgxPSI2LjQiICB5MT0iLTYuNCIgIHgyPSIxMi4yNSIgeTI9Ii0xMi4yNSIgc3Ryb2tlLXdpZHRoPSIyLjQiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -250,7 +250,7 @@ body.menu-open .deck{z-index:12}
 .site-nav .nav-icon{width:18px;height:18px;flex:0 0 auto;color:var(--beacon-500)}
 /* the deck-head sits below the site-bar; lift it accordingly */
 .deck-head{top:54px !important}
-/* inline code / brand-name emphasis — coder-monospace for "robby", "troid" etc. */
+/* inline code / brand-name emphasis — coder-monospace for project names etc. */
 code{
   font-family:var(--font-mono);font-size:.92em;letter-spacing:-.01em;
   font-weight:500;color:var(--beacon-700);
@@ -345,7 +345,11 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
 }
-.demo-frame video{width:100%;height:100%;display:block}
+.demo-frame video{width:100%;height:100%;display:block;object-fit:contain}
+/* The frame is the one element that may give way: it shrinks into whatever
+   space the slide has left, so the ledes and the footer stay put. */
+.slide[data-layout="demo"] .stage{min-height:0}
+.slide[data-layout="demo"] .demo-frame{flex:0 1 auto;min-height:0}
 .demo-frame img{max-width:100%;max-height:100%;display:block}
 .demo-lede{max-width:64ch;margin-left:auto;margin-right:auto;text-align:center}
 /* numbers row */
@@ -427,28 +431,32 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
 <body>
 <!-- site chrome — shared with the React app so deck/demo feel like one site -->
 <header class="site-bar">
-  <a class="site-bar-home" href="https://robby.thecontrarian.in/" aria-label="troid &amp; robby — back to the gallery">
-    <svg class="corona" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="robby &amp; troid — orio cookie mark">
+  <a class="site-bar-home" href="https://github.com/thecont1/helmsmate" aria-label="HelmsMate — the source repository">
+    <svg class="corona" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Saint Elms Fire — CoronaMark">
   <!--
-    robby & troid — orio mark, retinted to the robby palette.
-    A two-tone coin: obverse (cream, left) and reverse (ink, right), split
-    by a hairline vermilion spine. Two small dots face each other across
-    the spine — the obverse and reverse, mutually exclusive to sight.
-    Palette: Registration Vermilion #e3442f · archive paper #f4efe1 ·
-    charcoal ink #1c1a19.
+    Official Saint Elms Fire CoronaMark, rebuilt from src/components/Navigation.tsx
+    (the corona spark: St. Elmo's fire radiating at the masthead).
+    Exact geometry scaled ×(8/3) from the 24×24 viewBox onto a 64×64 badge disc.
+    beacon-600 disc · paper-white corona · 4 long rays (N/E/S/W) + 4 short rays (diagonals).
   -->
-  <circle cx="32" cy="32" r="28.5" fill="#e3442f"/>
-  <!-- left half = obverse (archive paper) -->
-  <path d="M 32 3.5 A 28.5 28.5 0 0 0 32 60.5 Z" fill="#f4efe1"/>
-  <!-- spine — vermilion hairline so the two halves read as one object -->
-  <line x1="32" y1="3.5" x2="32" y2="60.5" stroke="#1c1a19" stroke-width="0.8" opacity="0.55"/>
-  <!-- two facing centre marks -->
-  <circle cx="26" cy="32" r="2.6" fill="#1c1a19"/>
-  <circle cx="38" cy="32" r="2.6" fill="#f4efe1"/>
-  <!-- thin outer ring echoing the corona -->
-  <circle cx="32" cy="32" r="24" fill="none" stroke="#f4efe1" stroke-width="1.2" opacity="0.55"/>
+  <circle cx="32" cy="32" r="28.5" fill="#3E5EC0"/>
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#F6F7FB" stroke-width="1.2" opacity="0.45"/>
+  <g transform="translate(32,32)">
+    <circle r="5.4" fill="#F6F7FB"/>
+    <!-- 8 rays: even = long (strokeWidth 2), odd = short (1.4) — matches CoronaMark -->
+    <g stroke="#F6F7FB" stroke-linecap="round">
+      <line x1="9.1"  y1="0"     x2="17.9"  y2="0"      stroke-width="3.4"/>
+      <line x1="6.4"  y1="6.4"   x2="12.25" y2="12.25"  stroke-width="2.4"/>
+      <line x1="0"    y1="9.1"   x2="0"     y2="17.9"   stroke-width="3.4"/>
+      <line x1="-6.4" y1="6.4"   x2="-12.25" y2="12.25" stroke-width="2.4"/>
+      <line x1="-9.1" y1="0"     x2="-17.9" y2="0"      stroke-width="3.4"/>
+      <line x1="-6.4" y1="-6.4"  x2="-12.25" y2="-12.25" stroke-width="2.4"/>
+      <line x1="0"    y1="-9.1"  x2="0"     y2="-17.9"  stroke-width="3.4"/>
+      <line x1="6.4"  y1="-6.4"  x2="12.25" y2="-12.25" stroke-width="2.4"/>
+    </g>
+  </g>
 </svg>
-    <span class="site-bar-word">troid<span class="amp">&amp;</span>robby<span class="slash">/</span><span class="suffix">v1</span></span>
+    <span class="site-bar-word">HelmsMate<span class="slash">/</span><span class="suffix">v0.1</span></span>
   </a>
   <div class="site-bar-spacer"></div>
   <button class="site-bar-btn theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" aria-pressed="false" title="Toggle light/dark">
@@ -467,14 +475,9 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   <button class="site-nav-close" id="site-nav-close" type="button" aria-label="Close menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
-  <a href="https://robby.thecontrarian.in/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home — gallery</a>
-  <a href="https://robby.thecontrarian.in/about"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>About</a>
-  <a href="https://robby.thecontrarian.in/hackathon"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Hackathon brief</a>
-  <a href="https://robby.thecontrarian.in/concept"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/></svg>Image-object concept</a>
-  <a href="https://robby.thecontrarian.in/manual"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Language manual</a>
-  <a href="https://robby.thecontrarian.in/deck/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Presentation deck</a>
-  <a href="https://robby.thecontrarian.in/demo/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Demo video</a>
-  <a href="https://github.com/thecont1/robby" target="_blank" rel="noreferrer"><svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.53.1.72-.23.72-.51v-1.85c-2.94.64-3.56-1.25-3.56-1.25-.48-1.22-1.18-1.55-1.18-1.55-.96-.66.07-.65.07-.65 1.07.08 1.63 1.09 1.63 1.09.94 1.62 2.48 1.15 3.08.88.1-.69.37-1.15.67-1.42-2.35-.27-4.82-1.17-4.82-5.23 0-1.16.42-2.11 1.09-2.85-.11-.27-.47-1.35.1-2.81 0 0 .89-.29 2.89 1.09A9.96 9.96 0 0 1 12 6.6c.9 0 1.8.12 2.64.36 2-1.38 2.88-1.09 2.88-1.09.58 1.46.22 2.54.11 2.81.68.74 1.09 1.69 1.09 2.85 0 4.07-2.48 4.95-4.84 5.21.38.33.72.97.72 1.96v2.79c0 .28.19.61.73.51A10.5 10.5 0 0 0 12 1.5Z"/></svg>View Source</a>
+  <a href="https://github.com/thecont1/helmsmate"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</a>
+  <a href="https://github.com/thecont1/helmsmate#readme" target="_blank" rel="noreferrer"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Documentation</a>
+  <a href="https://github.com/thecont1/helmsmate" target="_blank" rel="noreferrer"><svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.53.1.72-.23.72-.51v-1.85c-2.94.64-3.56-1.25-3.56-1.25-.48-1.22-1.18-1.55-1.18-1.55-.96-.66.07-.65.07-.65 1.07.08 1.63 1.09 1.63 1.09.94 1.62 2.48 1.15 3.08.88.1-.69.37-1.15.67-1.42-2.35-.27-4.82-1.17-4.82-5.23 0-1.16.42-2.11 1.09-2.85-.11-.27-.47-1.35.1-2.81 0 0 .89-.29 2.89 1.09A9.96 9.96 0 0 1 12 6.6c.9 0 1.8.12 2.64.36 2-1.38 2.88-1.09 2.88-1.09.58 1.46.22 2.54.11 2.81.68.74 1.09 1.69 1.09 2.85 0 4.07-2.48 4.95-4.84 5.21.38.33.72.97.72 1.96v2.79c0 .28.19.61.73.51A10.5 10.5 0 0 0 12 1.5Z"/></svg>View Source</a>
 </nav>
 <main class="deck" id="deck">
 <div class="deck-head">
@@ -491,30 +494,30 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   <div class="rule"></div>
 </div>
 <div class="track" id="track">
-<section class="slide" data-context="SegFault 2026 · Demonstration">
+<section class="slide" data-context="Demonstration" data-layout="demo">
   <div class="stage">
     <p class="eyebrow">A working demonstration</p>
     <h2>
-      See <code>robby</code> in action.
+      See a deck being built.
     </h2>
     <div class="demo-frame">
       <video controls preload="metadata" playsinline
-       poster="robby-demo-poster.jpg">
-  <source src="robby-demo.mp4" type="video/mp4">
+       poster="helmsmate-demo-poster.jpg">
+  <source src="helmsmate-demo.mp4" type="video/mp4">
   Your browser doesn't support embedded video.
-  <a href="robby-demo.mp4">Download the demo MP4</a>.
+  <a href="helmsmate-demo.mp4">Download the demo MP4</a>.
 </video>
 
     </div>
     <p class="lede lede-flush demo-lede">
-      A short walkthrough of the gallery, the Teppanyaki Counter, the recipe editor, and a flip from obverse to reverse. Watch the working mechanism — compile, counter, palette, bind — the same compiler that produced the deck you just read.
+      A short walkthrough of the authoring loop — read the schema, write the deck, build it, then open the single file that comes out the other end.
     </p>
     <p class="lede lede-followup">
       90 seconds · no narration · click the play button.
     </p>
   </div>
   <footer class="foot">
-    <span>Demo video · hosted at <code>robby</code>.thecontrarian.in/demo</span>
+    <span>Demo video · drop <code>helmsmate</code>-demo.mp4 next to this page</span>
   </footer>
 </section>
 </div>

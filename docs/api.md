@@ -327,7 +327,7 @@ POST /api/decks/{id}/edit
     { "op": "replace_slide", "index": 3, "slide": { "layout": "cards3", … } },
     { "op": "remove_slide", "index": 5 },
     { "op": "insert_slide", "index": 2, "slide": { … } },
-    { "op": "set_theme", "theme": "robby-trace" }
+    { "op": "set_theme", "theme": "archive-trace" }
   ]
 }
 ```

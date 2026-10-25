@@ -1,150 +1,118 @@
-# HelmsMate
+# helmsmate
 
-**Zero-dependency HTML slide decks, authored in YAML, compiled to a single self-contained `index.html`.**
+> **A slide deck that lives in a text file.**
 
-Hived off from the Saint Elms Fire intro deck (`saint-elms-fire/deck/`), where the
-engine proved itself on an 8-slide product narrative. HelmsMate is that engine, generalized:
-you write one YAML file, run one build command, and get a beautiful presentation that runs
-anywhere a browser exists — no CDN, no runtime fetch, no framework.
+HelmsMate turns one YAML file into one self-contained HTML presentation. No
+framework, no CDN, no runtime fetches — the output is a single `index.html`
+you can email, drop on a USB stick, or open from disk on a laptop with no
+internet.
 
-Now it also speaks to other software. The same functions are exposed as a
-**REST API** and as **MCP tools**, so an LLM can discover the deck format,
-author a deck, and get back a finished presentation — then edit it.
+It was built for the era of AI-written code. A coding agent can read the deck
+format, author a deck, and hand you back a finished presentation, because the
+engine exposes itself over MCP.
 
-```
-deck.yaml  ──▶  build  ──▶  index.html   (single file: HTML + CSS + JS + inline SVG logos)
-                 │
-                 ├──▶  verify  ──▶  shots/slide-N.png  +  DOM assertion report
-                 │
-                 └──▶  serve  ──▶  REST API + MCP tools  ──▶  other software, LLMs
-```
+![A HelmsMate opener slide: an eyebrow, a large title, a lead paragraph and a row of figures.](docs/images/slide-01-1440x900.png)
 
-## Content model (the core idea)
+## What it looks like
 
-**Everything editorial lives in `deck.yaml`. Everything structural lives in the engine.**
-The YAML has two levels:
+Six layouts cover most decks: an opener, two- and three-card grids, a
+figure-and-text split, a closing slide, and a centred media frame.
 
-```yaml
-deck:                      # ── common to every slide ──
-  title: Saint Elms Fire — Intent · Vision · The Learner First   # <title> + tab
-  brand:
-    mark: assets/helm.svg          # inlined at build; or literal `svg:` block
-    word: Saint **Elms** Fire      # **bold** segment supported
-    link_reset: true               # clicking the mark returns to slide 1
-  footer:                          # left-aligned tagline default; per-slide override allowed
-    default: Guidance through the storm
-  nav:
-    style: pill                    # ‹ N / 8 › with counter centered between buttons
-    dots: true
-    progress: true
+![Two equal-height cards under a heading that breaks on two lines.](docs/images/slide-02-1440x900.png)
 
-theme: mariners-chart      # named theme; themes/*.theme.yaml hold palette + fonts
+An inline SVG sits in the figure slot. Draw it yourself, or let the agent
+draw it for you.
 
-slides:                    # ── per-slide content, pure data ──
-  - layout: opener
-    context: Intent · Purpose · Vision     # label in the frozen header (right side)
-    eyebrow: An AI-native LMS
-    title: |
-      Guidance through
-      the storm.
-    lede: Most learning platforms are digital filing cabinets…
-    stats:
-      - { big: "3", small: "Focus areas: Friend, Philosopher, Guide" }
-      - { big: Day 1, small: "Your second brain starts building" }
-    foot: St. Elmo's fire · the blue-white corona at the masthead
+![A slide with an architecture diagram on the left and prose on the right.](docs/images/slide-04-1440x900.png)
 
-  - layout: cards2            # two equal-height cards
-    context: Why we built it
-    title: Most LMSs are designed for Management.|Learning deserves its own architect.
-    cards:
-      - { k: The incumbent, h: Designed for administrators, p: Proctored rows… }
-      - { k: The correction, h: Designed for the learner, p: Elms inverts… }
-    note:                      # optional mono block under the cards
-      - Every learner is different.
-      - Temperament, pace, modality, prior knowledge — the system starts there.
-```
+Three columns when the argument has three parts.
 
-### Layout registry (v0 — lifted 1:1 from the Elms deck)
+![Three equal-height cards under a heading, with a line of prose beneath.](docs/images/slide-03-1440x900.png)
 
-| layout      | shape                                        | seen on Elms slide |
-|-------------|----------------------------------------------|--------------------|
-| `opener`    | eyebrow · giant title · lede · stats row     | 1                  |
-| `cards2`    | title · 2 equal-height cards · optional note | 2, 7               |
-| `cards3`    | title · 3 equal-height cards · optional lede | 3, 5, 6            |
-| `figure2`   | title · figure (inline SVG) left, text right | 4                  |
-| `closer`    | eyebrow · title · two ledes                  | 8                  |
-| `demo`      | title · centred media frame (video)          | — (demo page)      |
+## What it does
 
-Titles take an explicit break with `|` (or YAML `\n`) — the engine never guesses.
+- **One file out.** HTML, CSS, JS and SVG inlined. It opens from `file://`.
+- **Content in, structure out.** You write words. The engine owns layout,
+  theming, navigation and the fiddly parts.
+- **Six layouts, two themes.** `mariners-chart` (beacon blues, light) and
+  `archive-trace` (archive paper and vermilion, light and dark).
+- **Ships to other software.** The same engine is a Python library, a REST API
+  and an MCP server.
+- **Speaks to your coding agent.** Ask for a deck; the agent reaches for
+  HelmsMate on its own and returns an HTML file.
+- **Editable.** The authored YAML sits next to the built HTML, so a change is
+  a change to the source, not a patch to generated markup.
+- **Checks itself.** A verification script asserts the things that quietly
+  break: frozen header, no horizontal overflow, equal card heights, footer
+  in view, counter centred.
 
-The catalog above is not documentation — it is the code. `helmsmate/spec.py` holds
-one table of layouts and fields; the renderer draws from it, the validator checks
-against it, and the API and MCP layers publish it as JSON Schema. A layout cannot
-change in one place and stay stale in another.
+## Install
 
-## Engine invariants (bake these in; they were earned)
-
-These are the bugs/constraints discovered while building the Elms deck. The engine's
-`template.html` **must** preserve them:
-
-1. **Viewport/track split.** `.deck` owns `overflow:hidden`; `.track` owns the
-   `translateX` transform. Never both on one element — the overflow clip is applied in
-   local space and moves with the transform, blanking every slide after the first.
-2. **Panes need explicit width.** `.slide { width: 100vw }`, not `min-width`. A flex item
-   with `flex-shrink:0` and no width resolves its base size to *max-content*, and slides
-   silently grow wider than the viewport on narrow screens.
-3. **Frozen header.** Brand + rule live in a `.deck-head` overlay outside the track;
-   the right-side context label is swapped from each slide's `context:` field.
-   Slide `padding-top` = header block height exactly (120px desktop / 96px mobile).
-4. **Card rows equal-height** come free from grid stretch — don't add fixed heights.
-5. **Mobile (<900px):** single-column grids + `.slide { overflow-y: auto }` so footers
-   stay reachable; header shrinks and holds position.
-6. **Page counter centered** between ‹ › with tabular-nums min-width; dots bottom-left;
-   progress bar bottom edge; hash routing (`#/N`) with back/forward support.
-7. **Zero CDN.** Logos are inlined SVG; favicon is a data-URI. The output file must open
-   from `file://` with nothing missing. The one exception is opt-in: a theme that names
-   webfonts (Source Serif, Space Grotesk, JetBrains Mono) links Google Fonts. Set
-   `deck.webfonts: false` to strip those links for a fully offline deck.
-
-## Repo layout
+The short way is one prompt you paste into your coding agent — Claude Code,
+Cursor, MiniMax Code, anything with a shell. It clones the repo, installs the
+dependency, registers the MCP server, installs the companion skill, and builds
+a deck to prove it works.
 
 ```
-helmsmate/
-├── README.md                 # this file
-├── pyproject.toml            # package metadata + console scripts
-├── deck.example.yaml         # annotated starter (the Elms deck, ported)
-├── themes/
-│   └── mariners-chart.theme.yaml   # beacon blues, marine ink, serif/sans/mono stacks
-├── engine/
-│   ├── template.html         # CSS + shell + nav JS with invariant guards (see above)
-│   └── build.py              # legacy CLI entry point — now a shim over the package
-├── helmsmate/                # the library
-│   ├── spec.py               # THE contract: layouts, fields, JSON Schema, catalog
-│   ├── engine.py             # deck dict → self-contained HTML
-│   ├── validate.py           # friendly, path-addressed errors
-│   ├── themes.py             # theme registry
-│   ├── store.py              # built decks on disk, with identity
-│   ├── api.py                # REST API (stdlib only)
-│   ├── mcp.py                # MCP server (tools/list, tools/call)
-│   ├── cli.py                # helmsmate build | serve | mcp | schema | …
-│   └── paths.py              # where the template, themes and assets live
-├── scripts/
-│   ├── shoot.py              # headless screenshots of every slide → shots/
-│   ├── serve.py              # static dev server for dist/
-│   └── verify.py             # DOM assertions: logo frozen, no h-overflow,
-│                             #   equal card heights, footer in viewport, counter centered
-├── tests/                    # stdlib unittest — no test framework needed
-└── dist/                     # build output (gitignored except releases)
+Set up HelmsMate for me.
+
+HelmsMate compiles one YAML deck into a single self-contained HTML
+presentation, and exposes itself to you as MCP tools so you can build decks on
+request.
+
+Do the whole job without stopping to ask me questions, unless something
+genuinely blocks you.
+
+1. Get the code.
+   git clone https://github.com/thecont1/helmsmate.git ~/tools/helmsmate
+   Skip the clone if ~/tools/helmsmate already exists — use what is there.
+
+2. Install and wire it up.
+   cd ~/tools/helmsmate
+   python3 -m venv .venv
+   .venv/bin/pip install --upgrade pip
+   .venv/bin/pip install PyYAML
+   .venv/bin/python scripts/install.py --client <client> --python "$PWD/.venv/bin/python"
+
+   <client> is the coding agent you are running inside: claude, cursor,
+   minimax, or all. If you are not sure, run it with --client auto — it
+   registers with every client it finds on this machine.
+
+   If scripts/install.py is missing or fails, do the same four things by hand
+   (they are written out in docs/INSTALL.md inside the repo):
+     a. an interpreter with PyYAML,
+     b. an MCP server entry in your client's config,
+     c. the companion skill in your agent's skills directory,
+     d. a verification build.
+
+3. Restart or reload yourself so the new MCP server is picked up. Then confirm
+   you can see seven tools: list_themes, list_layouts, get_deck_schema,
+   validate_deck, build_deck, list_decks, read_deck.
+
+4. Prove the loop end to end. Call get_deck_schema, author a two-slide deck
+   against it, call build_deck, and open the index.html it returns.
+
+5. Report back: where the checkout is, which client you registered, where
+   decks will be written, and the path of the deck you just built.
 ```
 
-**Build tool:** Python 3 + PyYAML only. No other dependencies.
-**Verification:** Playwright headless (dev dependency, not shipped).
+If you would rather do it yourself, [`docs/INSTALL.md`](docs/INSTALL.md) has the
+same procedure as manual steps.
 
-## Using it from other software
+## Use
 
-The library, the REST API and the MCP server are three doors into the same functions.
+**Ask your agent.** "Make me a six-slide deck on the retrieval-augmented
+generation results." It reads the schema, writes the deck, builds it, and
+hands you the file. Every error it hits names the field that broke, so the
+retry is a one-line fix.
 
-### Library
+**Write YAML yourself.** One file, one command:
+
+```bash
+python -m helmsmate.cli build deck.yaml --out index.html
+```
+
+**Call it from code.**
 
 ```python
 from helmsmate import build_html, validate_deck
@@ -153,170 +121,34 @@ result = build_html(deck_dict)          # -> .html, .slides, .warnings, .outline
 problems = validate_deck(deck_dict)     # -> [ValidationIssue(path, message, hint)]
 ```
 
-### REST API
+**Serve it to other software.**
 
 ```bash
-python -m helmsmate.api --port 8787
-```
-
-The server binds to `127.0.0.1` and sends no CORS header, so a page in your
-browser cannot read it by accident. To expose it, add a token
-(`--token`) and, for browser clients, an origin (`--allow-origin`). A deck is
-content — `figure` is raw HTML by design — so treat the API as
-trusted-input-only. See [docs/api.md](docs/api.md#trust-boundary).
-
-| method | path                        | what it does                                    |
-|--------|-----------------------------|-------------------------------------------------|
-| GET    | `/`                         | endpoint index                                   |
-| GET    | `/openapi.json`             | OpenAPI 3.1 description                          |
-| GET    | `/api/schema`               | the deck contract: JSON Schema, layouts, notes   |
-| GET    | `/api/layouts`              | layout catalog                                   |
-| GET    | `/api/layouts/{name}`       | one layout, with its strict schema               |
-| GET    | `/api/themes`               | available themes                                  |
-| POST   | `/api/decks`                | build and store a deck                           |
-| POST   | `/api/decks/validate`       | check a deck without building it                 |
-| GET    | `/api/decks`                | list stored decks                                |
-| GET    | `/api/decks/{id}`           | metadata + authored source                       |
-| GET    | `/api/decks/{id}/yaml`      | the authored source                              |
-| GET    | `/api/decks/{id}/html`      | the built presentation                           |
-| GET    | `/decks/{id}/`              | the built presentation, in a browser             |
-| DELETE | `/api/decks/{id}`           | remove a stored deck                             |
-| POST   | `/mcp`                      | MCP tool calling over JSON-RPC                   |
-
-```bash
-curl -s localhost:8787/api/decks -H 'content-type: application/json' -d '{
-  "deck": {
-    "deck": {"title": "Quarterly review", "brand": {"mark": "assets/sef-corona.svg"}},
-    "theme": "mariners-chart",
-    "slides": [
-      {"layout": "opener", "context": "Opening", "title": "Q3 in one page.",
-       "lede": "Three numbers that matter.", "stats": [{"big": "42%", "small": "growth"}]},
-      {"layout": "cards2", "context": "Why", "title": "What moved.",
-       "cards": [{"k": "Up", "h": "Retention", "p": "…"}, {"k": "Down", "h": "Churn", "p": "…"}]}
-    ]
-  }
-}'
-```
-
-An invalid deck comes back `422` with a path and a hint for every problem:
-
-```json
-{"error": {"code": "invalid_deck", "message": "The deck has 1 validation error(s)...",
-  "details": [{"path": "slides[0].layout", "message": "Unknown layout 'opener2'.",
-               "hint": "One of: opener, cards2, cards3, figure2, closer, demo.",
-               "severity": "error"}]}}
-```
-
-Full reference: [`docs/api.md`](docs/api.md).
-
-### MCP — for LLMs
-
-MCP is how an LLM *discovers* the functions: it lists the tools, reads their
-input schemas, and calls them. The tools are the same library functions.
-
-| tool              | what it gives the LLM                                  |
-|-------------------|---------------------------------------------------------|
-| `list_themes`     | themes available for the deck                           |
-| `list_layouts`    | what each layout shows and takes, with examples         |
-| `get_deck_schema` | the full contract: JSON Schema, catalog, conventions    |
-| `validate_deck`   | per-field errors with paths and hints                    |
-| `build_deck`      | the finished presentation: id, URL, outline, warnings   |
-| `list_decks`      | decks already in the workspace                          |
-| `read_deck`       | the authored source of a stored deck                    |
-
-Over stdio, for a local client:
-
-```json
-{
-  "mcpServers": {
-    "helmsmate": {
-      "command": "python",
-      "args": ["-m", "helmsmate.mcp"],
-      "cwd": "/path/to/helmsmate"
-    }
-  }
-}
-```
-
-Over HTTP, on the same server as the REST API: `POST /mcp`.
-
-The loop an LLM runs is short and self-correcting:
-
-1. `get_deck_schema` → learns the layouts and their fields.
-2. `build_deck` with an authored deck.
-3. If it fails, each error names a path (`slides[3].cards[1].h`) and a hint; fix and retry.
-
-### CLI
-
-```bash
-python -m helmsmate.cli build deck.yaml --out dist/index.html
-python -m helmsmate.cli validate deck.yaml
 python -m helmsmate.cli serve --port 8787
-python -m helmsmate.cli schema            # the contract, as JSON
-python -m helmsmate.cli layouts           # the layout catalog
-python -m helmsmate.cli themes            # available themes
-python -m helmsmate.cli decks             # decks in the workspace
 ```
 
-`python engine/build.py deck.yaml` still works — it is a shim over the package.
+The full API — build, validate, list, read back — is in
+[`docs/api.md`](docs/api.md).
 
-## How a deck is stored
+## How it works
 
-Built decks live in the **workspace** (`./decks` by default, `HELMSMATE_WORKSPACE`
-to move it):
+The deck format, the layout registry, the engine invariants, the REST and MCP
+surfaces, the installer, and the verification harness are all documented in
+[`TECH-SPEC.md`](TECH-SPEC.md).
 
-```
-decks/<deck-id>/
-    deck.yaml     # the authored source — this is what an edit would touch
-    index.html    # the built presentation
-    meta.json     # title, slide count, timestamps, theme
-```
-
-Keeping the source next to the build is what makes the next phase possible:
-an edit applies to `deck.yaml` and rebuilds, rather than trying to patch
-generated HTML.
-
-## Migration path from the Elms deck
-
-1. Port `saint-elms-fire/deck/index.html` → `deck.yaml`
-   (pure mechanical translation; the 8 slides map onto the 5 layouts above).
-2. Extract the Mariner's Chart palette/fonts from the inline `:root` → theme YAML.
-3. Generalize `template.html` from the fixed file (layouts as Jinja-free string
-   templates — keep it readable).
-4. Port the checks we ran by hand (elementsFromPoint paint test, footer/overflow
-   measurements, counter centering) into `scripts/verify.py` as CI-able assertions.
-5. Point the Elms deck at HelmsMate: its folder keeps only `deck.yaml` + built output.
+The short version: everything editorial lives in `deck.yaml` and everything
+structural lives in the engine. One table of layouts and fields
+(`helmsmate/spec.py`) is the single source of truth — the renderer draws from
+it, the validator checks against it, and the API and MCP layers publish it as
+JSON Schema. A layout cannot change in one place and stay stale in another.
 
 ## Tests
 
 ```bash
-python scripts/smoke.py                       # does the service actually work?
-python -m unittest discover -s tests -t .      # the unit and integration suite
+python -m unittest discover -s tests -t .   # the suite
+python scripts/smoke.py                     # does the service actually work?
 ```
 
-`scripts/smoke.py` is the quick one: it starts the REST API on an ephemeral
-port, drives it the way an LLM would (discovery, build, read back), runs the
-same loop over MCP, and — if Playwright is installed — opens the built deck
-in a browser and checks that it renders. It prints a checklist and exits
-non-zero if anything fails.
+## License
 
-140 tests, stdlib only: the contract, the validator's error paths, the renderer
-(including that a list `note:` renders as lines and never as a Python repr),
-the store, the REST API over a real socket, the MCP JSON-RPC surface, and the
-transport edges a bad client can reach.
-
-## Roadmap
-
-- **v0** — the engine: one theme, five layouts, the Elms deck as the example.
-- **v1** — schema validation with friendly errors; `helmsmate new`; watch mode.
-- **v2** — fragments (animated build lists), presenter notes via query param,
-  PDF export through print CSS, second theme (paper/ink light & reef dark).
-- **v3 — the service layer (done).** The engine became a library with a
-  machine-readable contract, exposed over REST and MCP. An LLM can now discover
-  the layouts, author a deck and get a finished presentation back.
-- **v4 — editing (next).** The same contract, pointed the other way: read a
-  stored deck, apply an edit, rebuild. The seams are in place — `read_deck`
-  returns the authored source, `store.save` writes it back, and the validator
-  already reports on a deck before it is built. The shape it should take:
-  slide-level operations (add, replace, remove, reorder) rather than a free-form
-  text patch, so an edit is auditable and reversible.
+MIT.
