@@ -1,4 +1,4 @@
-# Robby Trace — archive paper / charcoal / vermilion, matches the robby site.
+# Archive Trace — archive paper / charcoal / vermilion.
 # Light = contact-sheet archaeology on cream paper. Dark = charcoal trace panel,
 # black field, same vermilion registration mark. Respects prefers-color-scheme.
 #
@@ -9,7 +9,7 @@
 #   beacon.600–900 = pressed / deeper vermilion for emphasis text
 #   marine.600–950 = the foreground/heading scale (charcoal in light,
 #                    cream in dark)
-name: Robby Trace
+name: Archive Trace
 
 # ──────────────────────────────────────────────────────────────────────────
 # Light mode — warm archive paper, charcoal ink, Registration Vermilion.
@@ -47,14 +47,14 @@ effects:
   grid_line_x: "rgba(0,0,0,0)"                # kill the blue grid — flat paper
   grid_line_y: "rgba(0,0,0,0)"
   grid_size:   "56px"
-  card_shadow: "7px 8px 0 rgba(28,26,25,.14)" # robby's hard offset shadow
+  card_shadow: "7px 8px 0 rgba(28,26,25,.14)" # hard offset shadow
   nav_shadow:  "0 1px 3px rgba(28,26,25,.18)"
   card_radius: "0px"                          # sharp editorial corners
   card_border: "1px solid rgba(28,26,25,.22)" # faded ink border
 
 # ──────────────────────────────────────────────────────────────────────────
 # Dark mode — deep black field, cream ink, vermilion as the registration mark.
-# Borders invert to vermilion (matches robby's dark trace-panel border).
+# Borders invert to vermilion (the dark trace-panel border).
 # ──────────────────────────────────────────────────────────────────────────
 dark:
   colors:

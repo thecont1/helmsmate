@@ -44,7 +44,6 @@ include = [
   # the wheel force-includes these — they must be in the sdist too, or a
   # wheel cannot be built from it
   "assets/sef-corona.svg",
-  "assets/orio-mark.svg",
   "assets/icons/thin-sunglasses.svg",
   "assets/icons/regular-sunglasses.svg",
 ]
