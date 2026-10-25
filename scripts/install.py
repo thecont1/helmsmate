@@ -295,6 +295,17 @@ def register(clients: list[str], python: str, checkout: Path, workspace: Path) -
     return steps
 
 
+def _present(path: Path) -> bool:
+    """A config counts if it exists — or is a symlink, even a broken one.
+
+    `Path.exists()` follows symlinks, so a link pointing at a file that is
+    not there yet reads as absent. The user has that client pointed at a
+    config all the same, and the write resolves the link and creates the
+    target.
+    """
+    return path.exists() or path.is_symlink()
+
+
 def detect_clients() -> list[str]:
     """Which clients have a config on this machine."""
     probes = {
@@ -302,10 +313,10 @@ def detect_clients() -> list[str]:
         "claude": Path.home() / ".claude.json",
         "cursor": Path.home() / ".cursor" / "mcp.json",
     }
-    found = [name for name, probe in probes.items() if probe.exists()]
-    if (Path.cwd() / ".mcp.json").exists():
+    found = [name for name, probe in probes.items() if _present(probe)]
+    if _present(Path.cwd() / ".mcp.json"):
         found.append("claude")
-    if (Path.cwd() / ".cursor" / "mcp.json").exists():
+    if _present(Path.cwd() / ".cursor" / "mcp.json"):
         found.append("cursor")
     # Preserve order, drop duplicates.
     return list(dict.fromkeys(found))
