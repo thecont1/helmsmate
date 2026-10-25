@@ -259,7 +259,11 @@ h2{font-size:clamp(30px,3.4vw,46px);line-height:1.06}
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
 }
-.demo-frame video{width:100%;height:100%;display:block}
+.demo-frame video{width:100%;height:100%;display:block;object-fit:contain}
+/* The frame is the one element that may give way: it shrinks into whatever
+   space the slide has left, so the ledes and the footer stay put. */
+.slide[data-layout="demo"] .stage{min-height:0}
+.slide[data-layout="demo"] .demo-frame{flex:0 1 auto;min-height:0}
 .demo-frame img{max-width:100%;max-height:100%;display:block}
 .demo-lede{max-width:64ch;margin-left:auto;margin-right:auto;text-align:center}
 /* numbers row */

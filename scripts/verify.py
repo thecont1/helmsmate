@@ -97,16 +97,21 @@ def check_slide(page, index: int, width: int, height: int) -> bool:
 
     foot = slide.locator(".foot").first
     if foot.count() and foot.is_visible():
-        if height >= 720:
-            fb = foot.bounding_box()
-            if fb["y"] + fb["height"] > height + 1:
-                ok &= failure(f"slide {index} footer below viewport: {fb['y'] + fb['height']}")
-        else:
+        # Mirror the engine's own scroll triggers: a slide scrolls when it is
+        # narrow (max-width:900px) or short (max-height:620px). Then the footer
+        # must be *reachable* by scrolling. Otherwise it must already sit
+        # inside the viewport. A tall phone (390x844) is still a phone.
+        scrolls = width <= 900 or height <= 620
+        if scrolls:
             slide.evaluate("el => { el.scrollTop = el.scrollHeight; }")
             page.wait_for_timeout(150)
             fb = foot.bounding_box()
             if fb["y"] + fb["height"] > height + 1:
-                ok &= failure(f"slide {index} footer unreachable on mobile: {fb['y'] + fb['height']}")
+                ok &= failure(f"slide {index} footer unreachable on scroll: {fb['y'] + fb['height']}")
+        else:
+            fb = foot.bounding_box()
+            if fb["y"] + fb["height"] > height + 1:
+                ok &= failure(f"slide {index} footer below viewport: {fb['y'] + fb['height']}")
 
         # Footer must clear the fixed nav row (bottom-right buttons + dots)
         nav_top = page.locator(".nav").bounding_box()["y"]
@@ -190,9 +195,11 @@ def main():
                 all_ok &= failure("slide index menu did not open")
             else:
                 print("  menu opens OK")
-            page.locator("#menu-list button").nth(2).click()
+            # Click the last menu item and expect to land on the last slide.
+            # Works for a one-slide deck as well as an eight-slide one.
+            page.locator("#menu-list button").nth(total - 1).click()
             page.wait_for_timeout(700)
-            if page.locator("#pageno").inner_text() != f"3 / {total}":
+            if page.locator("#pageno").inner_text() != f"{total} / {total}":
                 all_ok &= failure(f"menu item did not navigate: {page.locator('#pageno').inner_text()}")
             elif page.locator(".deck-menu.open").count():
                 all_ok &= failure("menu stayed open after navigation")

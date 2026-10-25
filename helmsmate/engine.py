@@ -287,7 +287,7 @@ def slide_html(
     else:
         raise BuildError(f"Unknown layout: {layout}")
 
-    return f"""<section class="slide" data-context="{context}">
+    return f"""<section class="slide" data-context="{context}" data-layout="{layout}">
   <div class="stage">
     {body}
   </div>
